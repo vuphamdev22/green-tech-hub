@@ -77,7 +77,7 @@ export default function Register() {
                 </label>
                 <input
                   placeholder={placeholder}
-                  value={(form as Record<string, string>)[key]}
+                  value={(form as unknown as Record<string, string>)[key]}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                   className="w-full bg-carbon-700 border border-white/10 rounded-sm px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-brand/50 transition-colors"
                 />
