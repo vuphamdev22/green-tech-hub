@@ -16,6 +16,16 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./admin/components/AdminLayout";
+import AdminDashboard from "./admin/pages/AdminDashboard";
+import AdminProducts from "./admin/pages/AdminProducts";
+import AdminCategories from "./admin/pages/AdminCategories";
+import AdminOrders from "./admin/pages/AdminOrders";
+import AdminUsers from "./admin/pages/AdminUsers";
+import AdminVouchers from "./admin/pages/AdminVouchers";
+import AdminInventory from "./admin/pages/AdminInventory";
+import AdminReviews from "./admin/pages/AdminReviews";
+import AdminAnalytics from "./admin/pages/AdminAnalytics";
 
 const queryClient = new QueryClient();
 
