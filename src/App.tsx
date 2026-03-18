@@ -30,10 +30,32 @@ import AdminAnalytics from "./admin/pages/AdminAnalytics";
 const queryClient = new QueryClient();
 
 const noLayoutRoutes = ["/login", "/register"];
+const adminRoutes = ["/admin"];
 
 function Layout() {
   const location = useLocation();
   const hideLayout = noLayoutRoutes.includes(location.pathname);
+  const isAdmin = location.pathname.startsWith("/admin");
+
+  if (isAdmin) {
+    return (
+      <AdminLayout>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/products" element={<AdminProducts />} />
+            <Route path="/admin/categories" element={<AdminCategories />} />
+            <Route path="/admin/orders" element={<AdminOrders />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/vouchers" element={<AdminVouchers />} />
+            <Route path="/admin/inventory" element={<AdminInventory />} />
+            <Route path="/admin/reviews" element={<AdminReviews />} />
+            <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          </Routes>
+        </AnimatePresence>
+      </AdminLayout>
+    );
+  }
 
   return (
     <>
