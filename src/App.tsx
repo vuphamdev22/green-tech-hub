@@ -26,6 +26,7 @@ import AdminVouchers from "./admin/pages/AdminVouchers";
 import AdminInventory from "./admin/pages/AdminInventory";
 import AdminReviews from "./admin/pages/AdminReviews";
 import AdminAnalytics from "./admin/pages/AdminAnalytics";
+import AdminSettings from "./admin/pages/AdminSettings";
 
 const queryClient = new QueryClient();
 
