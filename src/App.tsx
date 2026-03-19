@@ -52,6 +52,7 @@ function Layout() {
             <Route path="/admin/inventory" element={<AdminInventory />} />
             <Route path="/admin/reviews" element={<AdminReviews />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
           </Routes>
         </AnimatePresence>
       </AdminLayout>
