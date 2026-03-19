@@ -26,6 +26,7 @@ import AdminVouchers from "./admin/pages/AdminVouchers";
 import AdminInventory from "./admin/pages/AdminInventory";
 import AdminReviews from "./admin/pages/AdminReviews";
 import AdminAnalytics from "./admin/pages/AdminAnalytics";
+import AdminSettings from "./admin/pages/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ function Layout() {
             <Route path="/admin/inventory" element={<AdminInventory />} />
             <Route path="/admin/reviews" element={<AdminReviews />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
           </Routes>
         </AnimatePresence>
       </AdminLayout>
