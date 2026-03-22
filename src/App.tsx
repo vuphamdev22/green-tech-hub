@@ -72,6 +72,7 @@ function Layout() {
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
@@ -79,6 +80,7 @@ function Layout() {
         </Routes>
       </AnimatePresence>
       {!hideLayout && <Footer />}
+      {!hideLayout && !isAdmin && <ChatbotWidget />}
     </>
   );
 }
