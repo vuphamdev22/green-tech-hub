@@ -7,11 +7,13 @@ import { AnimatePresence } from "framer-motion";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import CartDrawer from "@/components/shared/CartDrawer";
+import ChatbotWidget from "@/components/shared/ChatbotWidget";
 import Home from "./pages/Home";
 import ProductListing from "./pages/ProductListing";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
+import OrderSuccess from "./pages/OrderSuccess";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
@@ -70,6 +72,7 @@ function Layout() {
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
@@ -77,6 +80,7 @@ function Layout() {
         </Routes>
       </AnimatePresence>
       {!hideLayout && <Footer />}
+      {!hideLayout && !isAdmin && <ChatbotWidget />}
     </>
   );
 }
