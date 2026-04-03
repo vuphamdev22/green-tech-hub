@@ -1,7 +1,7 @@
-import { useState, ReactNode } from "react";
+import { useState } from "react";
 import AdminSidebar from "./AdminSidebar";
 import AdminNavbar from "./AdminNavbar";
-import { useLocation } from "react-router-dom";
+import { useLocation, Outlet } from "react-router-dom";
 
 const titleMap: Record<string, string> = {
   "/admin": "Dashboard Overview",
@@ -16,18 +16,26 @@ const titleMap: Record<string, string> = {
   "/admin/settings": "Settings",
 };
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const title = titleMap[location.pathname] || "Admin";
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+      <AdminSidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((c) => !c)}
+      />
+
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <AdminNavbar onMenuToggle={() => setCollapsed((c) => !c)} title={title} />
+        <AdminNavbar
+          onMenuToggle={() => setCollapsed((c) => !c)}
+          title={title}
+        />
+
         <main className="flex-1 overflow-y-auto bg-muted/30 p-4 md:p-6">
-          {children}
+          <Outlet /> {/* 🔥 QUAN TRỌNG */}
         </main>
       </div>
     </div>

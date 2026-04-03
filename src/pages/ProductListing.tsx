@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { SlidersHorizontal, ChevronDown, X, Grid3X3, List } from "lucide-react";
-import { products, categories } from "@/data/mockData";
-import type { Product } from "@/data/mockData";
+import { categories } from "@/data/mockData";
+import {
+  getProductCategoryId,
+  getProductCategoryName,
+  type Product,
+} from "@/types/product";
 import ProductCard from "@/components/shared/ProductCard";
 import { ProductGridSkeleton } from "@/components/shared/LoadingSkeleton";
+import { useProducts } from "@/hooks/useProducts";
 
 const sortOptions = [
   { value: "featured", label: "Featured" },
@@ -25,7 +30,6 @@ const priceRanges = [
 
 export default function ProductListing() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [loading, setLoading] = useState(true);
   const [filtered, setFiltered] = useState<Product[]>([]);
   const [sort, setSort] = useState("featured");
   const [priceRange, setPriceRange] = useState<{ min: number; max: number } | null>(null);
@@ -33,67 +37,87 @@ export default function ProductListing() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
   const PER_PAGE = 6;
+  const { products, loading, error } = useProducts();
 
   const activeCategory = searchParams.get("category") || "all";
   const searchQuery = searchParams.get("search") || "";
 
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      let result = [...products];
+    if (!products) {
+      setFiltered([]);
+      return;
+    }
 
-      if (activeCategory !== "all") {
-        result = result.filter((p) => p.category === activeCategory);
-      }
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
+    let result = [...products];
+
+    if (activeCategory !== "all") {
+      const match = categories.find(
+        (cat) =>
+          cat.id === activeCategory ||
+          cat.name.toLowerCase() === activeCategory.toLowerCase()
+      );
+      if (match) {
+        const matchName = match.name.toLowerCase();
         result = result.filter(
           (p) =>
-            p.name.toLowerCase().includes(q) ||
-            p.category.toLowerCase().includes(q) ||
-            p.description.toLowerCase().includes(q)
+            getProductCategoryName(p).toLowerCase() === matchName ||
+            String(getProductCategoryId(p) ?? "") === String(activeCategory)
         );
       }
-      if (priceRange) {
-        result = result.filter(
-          (p) => p.price >= priceRange.min && p.price <= priceRange.max
-        );
-      }
+    }
 
-      switch (sort) {
-        case "price-asc":
-          result.sort((a, b) => a.price - b.price);
-          break;
-        case "price-desc":
-          result.sort((a, b) => b.price - a.price);
-          break;
-        case "rating":
-          result.sort((a, b) => b.rating - a.rating);
-          break;
-        default:
-          break;
-      }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          getProductCategoryName(p).toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q)
+      );
+    }
 
-      setFiltered(result);
-      setPage(1);
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [activeCategory, searchQuery, sort, priceRange]);
+    if (priceRange) {
+      result = result.filter(
+        (p) => p.price >= priceRange.min && p.price <= priceRange.max
+      );
+    }
+
+    switch (sort) {
+      case "price-asc":
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case "price-desc":
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case "rating":
+        result.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+        break;
+      default:
+        break;
+    }
+
+    setFiltered(result);
+    setPage(1);
+  }, [activeCategory, searchQuery, sort, priceRange, products]);
 
   const paginated = filtered.slice(0, page * PER_PAGE);
   const hasMore = paginated.length < filtered.length;
 
   const setCategory = (cat: string) => {
-    if (cat === "all") searchParams.delete("category");
-    else searchParams.set("category", cat);
-    setSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams);
+    if (cat === "all") params.delete("category");
+    else params.set("category", cat);
+    setSearchParams(params);
   };
 
   const activeLabel =
     activeCategory === "all"
       ? "All Products"
-      : categories.find((c) => c.id === activeCategory)?.name ?? "Products";
+      : categories.find(
+          (c) =>
+            c.id === activeCategory ||
+            c.name.toLowerCase() === activeCategory.toLowerCase()
+        )?.name ?? "Products";
 
   return (
     <div className="min-h-screen pt-20">
@@ -108,9 +132,12 @@ export default function ProductListing() {
                   <span className="text-muted-foreground"> for "{searchQuery}"</span>
                 )}
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {loading ? "Loading..." : `${filtered.length} results`}
-              </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {loading ? "Loading..." : `${filtered.length} results`}
+            </p>
+            {error && (
+              <p className="text-xs text-red-400 mt-1">{error}</p>
+            )}
             </div>
             <div className="flex items-center gap-3">
               {/* Sort */}
@@ -191,15 +218,13 @@ export default function ProductListing() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="lg:grid lg:grid-cols-[220px_1fr] gap-8">
           {/* Sidebar filters */}
-          <AnimatePresence>
-            {(filtersOpen || true) && (
-              <motion.aside
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className={`${
-                  filtersOpen ? "block" : "hidden lg:block"
-                } bg-card border border-white/[0.06] rounded-md p-5 h-fit sticky top-24`}
-              >
+          <motion.aside
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`${
+              filtersOpen ? "block" : "hidden lg:block"
+            } bg-card border border-white/[0.06] rounded-md p-5 h-fit sticky top-24`}
+          >
                 <h3 className="text-xs font-bold uppercase tracking-widest text-foreground mb-4 flex items-center justify-between">
                   Filters
                   {priceRange && (
@@ -249,8 +274,6 @@ export default function ProductListing() {
                   </label>
                 </div>
               </motion.aside>
-            )}
-          </AnimatePresence>
 
           {/* Product grid */}
           <div>

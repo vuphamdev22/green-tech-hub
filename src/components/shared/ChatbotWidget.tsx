@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type MouseEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle, X, Send, Bot, User,
@@ -6,7 +6,9 @@ import {
 } from "lucide-react";
 import { products } from "@/data/mockData";
 import { useCartStore } from "@/store/cartStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "sonner";
+import { getErrorMessage, getHttpStatus } from "@/utils/error";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface Message {
@@ -166,8 +168,30 @@ function getBotResponse(query: string): Omit<Message, "id" | "timestamp" | "role
 
 // ─── Product Suggestion Card ────────────────────────────────────────────────
 function ProductSuggestionCard({ product }: { product: (typeof products)[0] }) {
+  const [isAdding, setIsAdding] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleAdd = async (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (isAdding) return;
+
+    try {
+      setIsAdding(true);
+      await addItem(product);
+      toast.success(`${product.name} added to cart`, {
+        description: `$${product.price.toLocaleString()}`,
+      });
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not add this product to your cart."));
+      if (getHttpStatus(err) === 403) {
+        navigate("/login", { replace: true, state: { from: location.pathname } });
+      }
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   return (
     <motion.div
@@ -185,13 +209,12 @@ function ProductSuggestionCard({ product }: { product: (typeof products)[0] }) {
         <div className="flex items-center justify-between mt-1">
           <span className="text-xs font-black text-brand">${product.price.toLocaleString()}</span>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              addItem(product);
-            }}
-            className="text-[10px] px-2 py-0.5 bg-brand/20 text-brand rounded-sm hover:bg-brand/30 transition-colors font-bold"
+            type="button"
+            onClick={handleAdd}
+            disabled={isAdding}
+            className="text-[10px] px-2 py-0.5 bg-brand/20 text-brand rounded-sm hover:bg-brand/30 transition-colors font-bold disabled:cursor-wait disabled:opacity-70"
           >
-            + Cart
+            {isAdding ? "Adding…" : "+ Cart"}
           </button>
         </div>
       </div>

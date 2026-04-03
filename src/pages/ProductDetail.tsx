@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Star,
@@ -14,25 +14,72 @@ import {
   Shield,
   Truck,
 } from "lucide-react";
-import { getProductById, products } from "@/data/mockData";
+import { getProductById } from "@/services/productService";
 import { useCartStore } from "@/store/cartStore";
 import ProductCard from "@/components/shared/ProductCard";
 import { toast } from "sonner";
+import { useProducts } from "@/hooks/useProducts";
+import {
+  getProductCategoryName,
+  getProductCategorySlug,
+  getProductImage,
+  isProductInStock,
+  type Product,
+} from "@/types/product";
+import { getErrorMessage, getHttpStatus } from "@/utils/error";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
-  const product = getProductById(id!);
+  const { products: allProducts } = useProducts();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"specs" | "reviews">("specs");
+  const navigate = useNavigate();
+  const location = useLocation();
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
+  const [isAdding, setIsAdding] = useState(false);
+
+  useEffect(() => {
+    if (!id) {
+      setProduct(null);
+      setError("Product not found.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    getProductById(id)
+      .then((res) => {
+        setProduct(res.data);
+        setError(null);
+      })
+      .catch((err) => {
+        setProduct(null);
+        setError(err instanceof Error ? err.message : "Failed to load product.");
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-24 flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading product...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
         <div className="text-center">
           <p className="text-6xl mb-4">⚡</p>
-          <h1 className="text-2xl font-black text-foreground mb-2">Product Not Found</h1>
+          <h1 className="text-2xl font-black text-foreground mb-2">
+            {error ? "Something went wrong" : "Product Not Found"}
+          </h1>
+          <p className="text-muted-foreground mb-4">{error ?? "We couldn’t find that item."}</p>
           <Link to="/products" className="text-brand hover:underline text-sm">
             Browse all products →
           </Link>
@@ -41,14 +88,42 @@ export default function ProductDetail() {
     );
   }
 
-  const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) addItem(product);
-    toast.success(`${quantity}× ${product.name} added to cart`, {
-      action: { label: "View Cart", onClick: () => setCartOpen(true) },
-    });
+  const handleAddToCart = async () => {
+    if (!product || isAdding || !available) return;
+
+    try {
+      setIsAdding(true);
+      await addItem(product, quantity);
+      toast.success(`${quantity}× ${product.name} added to cart`, {
+        action: { label: "View Cart", onClick: () => setCartOpen(true) },
+      });
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not add items to your cart."));
+      if (getHttpStatus(err) === 403) {
+        navigate("/login", { replace: true, state: { from: location.pathname } });
+      }
+    } finally {
+      setIsAdding(false);
+    }
   };
 
-  const related = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const categoryName = getProductCategoryName(product);
+  const heroImage = getProductImage(product);
+  const available = isProductInStock(product);
+  const ratingValue = typeof product.rating === "number" ? product.rating : null;
+  const reviewCount = typeof product.reviews === "number" ? product.reviews : null;
+  const specs = product.specs ?? {};
+  const categorySlug = getProductCategorySlug(product);
+
+  const related = allProducts
+    ? allProducts
+        .filter(
+          (p) =>
+            p.id !== product.id &&
+            getProductCategoryName(p).toLowerCase() === categoryName.toLowerCase()
+        )
+        .slice(0, 4)
+    : [];
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : null;
@@ -63,8 +138,11 @@ export default function ProductDetail() {
             <ChevronRight className="w-3 h-3" />
             <Link to="/products" className="hover:text-brand transition-colors">Products</Link>
             <ChevronRight className="w-3 h-3" />
-            <Link to={`/products?category=${product.category}`} className="hover:text-brand capitalize transition-colors">
-              {product.category}
+            <Link
+              to={`/products?category=${encodeURIComponent(categorySlug)}`}
+              className="hover:text-brand capitalize transition-colors"
+            >
+              {categoryName}
             </Link>
             <ChevronRight className="w-3 h-3" />
             <span className="text-foreground truncate max-w-[200px]">{product.name}</span>
@@ -82,11 +160,17 @@ export default function ProductDetail() {
             className="relative"
           >
             <div className="aspect-square bg-carbon-800 rounded-md overflow-hidden border border-white/[0.06] relative">
-              <img
-                src={product.image}
-                alt={product.name}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-              />
+              {heroImage ? (
+                <img
+                  src={heroImage}
+                  alt={product.name}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  <Zap className="w-10 h-10" />
+                </div>
+              )}
               {product.badge && (
                 <div className="absolute top-4 left-4">
                   <span className="text-xs font-black uppercase tracking-widest px-3 py-1.5 bg-brand text-carbon-900 rounded-sm">
@@ -115,9 +199,9 @@ export default function ProductDetail() {
           >
             <div className="flex items-center gap-3 mb-3">
               <span className="text-[10px] uppercase tracking-[0.2em] text-brand font-black border border-brand/30 bg-brand/10 px-2.5 py-1 rounded-sm">
-                {product.category}
+                {categoryName}
               </span>
-              {product.inStock ? (
+              {available ? (
                 <span className="text-[10px] uppercase tracking-wider text-green-400 flex items-center gap-1">
                   <Check className="w-3 h-3" /> In Stock
                 </span>
@@ -139,7 +223,7 @@ export default function ProductDetail() {
                   <Star
                     key={i}
                     className={`w-4 h-4 ${
-                      i < Math.floor(product.rating)
+                      ratingValue !== null && i < Math.round(ratingValue)
                         ? "text-yellow-400 fill-yellow-400"
                         : "text-white/20"
                     }`}
@@ -147,7 +231,9 @@ export default function ProductDetail() {
                 ))}
               </div>
               <span className="text-sm font-mono-spec text-muted-foreground">
-                {product.rating} ({product.reviews.toLocaleString()} reviews)
+                {ratingValue !== null
+                  ? `${ratingValue.toFixed(1)} (${(reviewCount ?? 0).toLocaleString()} reviews)`
+                  : "No reviews yet"}
               </span>
             </div>
 
@@ -194,11 +280,11 @@ export default function ProductDetail() {
 
               <button
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
+                disabled={!available || isAdding}
                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand text-carbon-900 font-black uppercase tracking-widest text-sm rounded-sm hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ShoppingCart className="w-4 h-4" />
-                Add to Cart
+                {isAdding ? "Adding…" : "Add to Cart"}
               </button>
 
               <button className="w-11 h-11 border border-white/15 rounded-sm flex items-center justify-center text-muted-foreground hover:text-red-400 hover:border-red-400/30 transition-colors">
@@ -246,7 +332,7 @@ export default function ProductDetail() {
 
           {activeTab === "specs" ? (
             <div className="grid sm:grid-cols-2 gap-3 max-w-2xl">
-              {Object.entries(product.specs).map(([key, val]) => (
+              {Object.entries(specs).map(([key, val]) => (
                 <div
                   key={key}
                   className="flex justify-between items-center px-4 py-3 bg-card border border-white/[0.06] rounded-sm"

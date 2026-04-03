@@ -1,18 +1,38 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Product } from "@/data/mockData";
+import type { Product } from "@/types/product";
+import cartService, { type CartItemResponse, type CartUpdatePayload } from "@/services/cartService";
 
 export interface CartItem {
+  cartItemId: number;
   product: Product;
   quantity: number;
 }
 
+const toProduct = (item: CartItemResponse): Product => ({
+  id: item.productId,
+  name: item.productName,
+  description: "",
+  price: item.price,
+  rating: null,
+  reviews: null,
+  image: item.image,
+});
+
+const normalizeCartItems = (items: CartItemResponse[]) =>
+  items.map((item) => ({
+    cartItemId: item.id,
+    product: toProduct(item),
+    quantity: item.quantity,
+  }));
+
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
-  addItem: (product: Product) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, qty: number) => void;
+  addItem: (product: Product, quantity?: number) => Promise<void>;
+  loadCart: () => Promise<void>;
+  removeItem: (cartItemId: number) => Promise<void>;
+  updateQuantity: (cartItemId: number, qty: number) => Promise<void>;
   clearCart: () => void;
   setOpen: (open: boolean) => void;
   total: () => number;
@@ -24,30 +44,42 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       isOpen: false,
-      addItem: (product) => {
-        set((state) => {
-          const existing = state.items.find((i) => i.product.id === product.id);
-          if (existing) {
-            return {
-              items: state.items.map((i) =>
-                i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
-              ),
-            };
-          }
-          return { items: [...state.items, { product, quantity: 1 }] };
-        });
+      addItem: async (product, quantity = 1) => {
+        const payload = {
+          productId: product.id,
+          quantity,
+        };
+        const response = await cartService.addToCart(payload);
+        set({ items: normalizeCartItems(response.data.items) });
       },
-      removeItem: (productId) =>
-        set((state) => ({ items: state.items.filter((i) => i.product.id !== productId) })),
-      updateQuantity: (productId, qty) =>
-        set((state) => ({
-          items:
-            qty <= 0
-              ? state.items.filter((i) => i.product.id !== productId)
-              : state.items.map((i) =>
-                  i.product.id === productId ? { ...i, quantity: qty } : i
-                ),
-        })),
+      loadCart: async () => {
+        const response = await cartService.getCart();
+        set({ items: normalizeCartItems(response.data.items) });
+      },
+      removeItem: async (cartItemId) => {
+        try {
+          const response = await cartService.deleteCartItem(cartItemId);
+          set({ items: normalizeCartItems(response.data.items) });
+        } catch (error) {
+          console.error("Failed to remove cart item", error);
+        }
+      },
+      updateQuantity: async (cartItemId, qty) => {
+        if (qty <= 0) {
+          await cartService.deleteCartItem(cartItemId)
+            .then((res) => set({ items: normalizeCartItems(res.data.items) }))
+            .catch((error) => console.error("Failed to remove cart item", error));
+          return;
+        }
+
+        const payload: CartUpdatePayload = { cartItemId, quantity: qty };
+        try {
+          const res = await cartService.updateCartItem(payload);
+          set({ items: normalizeCartItems(res.data.items) });
+        } catch (error) {
+          console.error("Failed to update cart quantity", error);
+        }
+      },
       clearCart: () => set({ items: [] }),
       setOpen: (open) => set({ isOpen: open }),
       total: () => get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),

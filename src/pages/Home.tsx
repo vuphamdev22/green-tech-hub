@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, ChevronRight, Shield, Truck, Zap, RefreshCw } from "lucide-react";
 import heroLaptop from "@/assets/hero-laptop.png";
-import { categories, products } from "@/data/mockData";
+import { categories } from "@/data/mockData";
 import ProductCard from "@/components/shared/ProductCard";
+import { ProductGridSkeleton } from "@/components/shared/LoadingSkeleton";
+import { useProducts } from "@/hooks/useProducts";
 
 const stats = [
   { value: "50K+", label: "Products" },
@@ -25,9 +27,19 @@ export default function Home() {
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const { products, loading, error } = useProducts();
 
-  const featuredProducts = products.slice(0, 6);
-  const newArrivals = products.slice(2, 6);
+  const parseTimestamp = (value?: string) => {
+    const timestamp = value ? Date.parse(value) : 0;
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  };
+
+  const featuredProducts = products?.slice(0, 6) ?? [];
+  const newArrivals = products
+    ? [...products]
+        .sort((a, b) => parseTimestamp(b.createdAt) - parseTimestamp(a.createdAt))
+        .slice(0, 4)
+    : [];
 
   return (
     <div className="min-h-screen">
@@ -228,11 +240,24 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredProducts.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i} />
-          ))}
-        </div>
+        {error && (
+          <p className="text-sm text-destructive mt-2">
+            Unable to load featured products: {error}
+          </p>
+        )}
+        {loading ? (
+          <ProductGridSkeleton count={3} />
+        ) : featuredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredProducts.map((product, i) => (
+              <ProductCard key={product.id} product={product} index={i} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-muted-foreground">
+            No featured products available right now.
+          </p>
+        )}
       </section>
 
       {/* ── PROMO BANNER ── */}
@@ -280,11 +305,19 @@ export default function Home() {
             </h2>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {newArrivals.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i} />
-          ))}
-        </div>
+        {loading ? (
+          <ProductGridSkeleton count={4} />
+        ) : newArrivals.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {newArrivals.map((product, i) => (
+              <ProductCard key={product.id} product={product} index={i} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-muted-foreground">
+            No new arrivals at the moment.
+          </p>
+        )}
       </section>
 
       {/* ── NEWSLETTER ── */}

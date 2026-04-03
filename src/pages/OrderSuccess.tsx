@@ -1,26 +1,17 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate, Link, useSearchParams } from "react-router-dom";
 import {
   Check, Package, Truck, MapPin, Home,
   ShoppingBag, ChevronRight, Copy, Download,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { CartItem } from "@/store/cartStore";
+import orderService from "@/services/orderService";
+import type { OrderResponse, PaymentMethod } from "@/types/order";
 
 interface OrderState {
-  method: string;
-  total: number;
-  items: CartItem[];
-  shipping: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-  };
+  method: PaymentMethod;
+  order: OrderResponse;
 }
 
 const ORDER_TIMELINE = [
@@ -68,20 +59,58 @@ function SuccessCircle() {
 export default function OrderSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const state = location.state as OrderState | null;
-
-  const orderId = `VG-${Date.now().toString().slice(-8)}`;
   const [copied, setCopied] = useState(false);
+  const [order, setOrder] = useState<OrderResponse | null>(null);
+  const [method, setMethod] = useState<PaymentMethod>("cod");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!state) {
+    const orderIdParam = searchParams.get("orderId");
+    const statusParam = searchParams.get("status");
+
+    if (orderIdParam && statusParam === "paid") {
+      // Fetch order from API for VNPay redirect
+      const fetchOrder = async () => {
+        setLoading(true);
+        try {
+          const response = await orderService.getOrderById(parseInt(orderIdParam));
+          setOrder(response.data);
+          setMethod("vnpay");
+        } catch (error) {
+          console.error("Failed to fetch order", error);
+          toast.error("Không thể tải thông tin đơn hàng");
+          navigate("/");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchOrder();
+    } else if (state) {
+      // Use state from navigation
+      setOrder(state.order);
+      setMethod(state.method);
+    } else {
+      // No valid data, redirect to home
       navigate("/");
     }
-  }, [state, navigate]);
+  }, [state, navigate, searchParams]);
 
-  if (!state) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-20 bg-carbon-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-brand/30 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading order details...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const isCOD = state.method === "cod";
+  if (!order) return null;
+  const orderId = order.orderId ? `VG-${order.orderId}` : `VG-${Date.now().toString().slice(-8)}`;
+  const isCOD = method === "cod";
 
   const copyOrderId = () => {
     navigator.clipboard.writeText(orderId);
@@ -131,10 +160,11 @@ export default function OrderSuccess() {
           className="bg-card border border-white/[0.06] rounded-md p-5 mb-4"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Order ID</p>
-              <p className="text-xl font-mono font-black text-brand">{orderId}</p>
-            </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Order ID</p>
+                <p className="text-xl font-mono font-black text-brand">{orderId}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">{order.status}</p>
+              </div>
             <div className="flex gap-2">
               <button
                 onClick={copyOrderId}
@@ -156,21 +186,27 @@ export default function OrderSuccess() {
             <div>
               <p className="text-muted-foreground mb-1">Payment Method</p>
               <p className="font-bold text-foreground capitalize">
-                {state.method === "cod"          ? "Cash on Delivery"
-                  : state.method === "qr_code"  ? "QR Code"
-                  : state.method === "e_wallet" ? "E-Wallet"
+                {method === "cod"          ? "Cash on Delivery"
+                  : method === "qr_code"  ? "QR Code"
+                  : method === "e_wallet" ? "E-Wallet"
                   : "Bank Transfer"}
               </p>
             </div>
             <div>
               <p className="text-muted-foreground mb-1">Order Total</p>
-              <p className="font-mono font-black text-brand">${state.total.toFixed(2)}</p>
+              <p className="font-mono font-black text-brand">${order.totalPrice.toFixed(2)}</p>
             </div>
             <div>
               <p className="text-muted-foreground mb-1">Ship to</p>
-              <p className="font-bold text-foreground">
-                {state.shipping.firstName} {state.shipping.lastName}
-              </p>
+                <p className="font-bold text-foreground">
+                  {order.shippingAddress.firstName} {order.shippingAddress.lastName}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {order.shippingAddress.address}, {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {order.shippingAddress.email} • {order.shippingAddress.phone}
+                </p>
             </div>
             <div>
               <p className="text-muted-foreground mb-1">Estimated Delivery</p>
@@ -192,7 +228,7 @@ export default function OrderSuccess() {
               <p className="text-sm font-black text-foreground">Cash on Delivery — No payment now</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Our delivery partner will collect{" "}
-                <span className="font-bold text-brand">${state.total.toFixed(2)}</span> at your door.
+                <span className="font-bold text-brand">${order.totalPrice.toFixed(2)}</span> at your door.
                 Please have the exact amount ready.
               </p>
             </div>
@@ -270,17 +306,21 @@ export default function OrderSuccess() {
             Items Ordered
           </h3>
           <div className="space-y-3">
-            {state.items.map((item) => (
-              <div key={item.product.id} className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-carbon-800 rounded-sm overflow-hidden flex-shrink-0">
-                  <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+            {order.items.map((item) => (
+              <div key={item.productId} className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-carbon-800 rounded-sm overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-black text-muted-foreground">
+                  {item.image ? (
+                    <img src={item.image} alt={item.productName} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{item.productName.charAt(0)}</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-foreground line-clamp-1">{item.product.name}</p>
+                  <p className="text-xs font-semibold text-foreground line-clamp-1">{item.productName}</p>
                   <p className="text-[10px] text-muted-foreground">Qty: {item.quantity}</p>
                 </div>
                 <span className="font-mono text-xs font-bold text-foreground">
-                  ${(item.product.price * item.quantity).toLocaleString()}
+                  ${(item.price * item.quantity).toLocaleString()}
                 </span>
               </div>
             ))}

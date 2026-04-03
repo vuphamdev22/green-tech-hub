@@ -1,10 +1,16 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, type MouseEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ShoppingCart, Star, Zap, Eye } from "lucide-react";
-import type { Product } from "@/data/mockData";
+import {
+  getProductCategoryName,
+  getProductImage,
+  isProductInStock,
+  type Product,
+} from "@/types/product";
 import { useCartStore } from "@/store/cartStore";
 import { toast } from "sonner";
+import { getErrorMessage, getHttpStatus } from "@/utils/error";
 
 interface ProductCardProps {
   product: Product;
@@ -13,22 +19,47 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const [imgError, setImgError] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const setOpen = useCartStore((s) => s.setOpen);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : null;
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem(product);
-    toast.success(`${product.name} added to cart`, {
-      description: `$${product.price.toLocaleString()}`,
-      action: { label: "View Cart", onClick: () => setOpen(true) },
-    });
+    if (!available || isAdding) return;
+
+    try {
+      setIsAdding(true);
+      await addItem(product);
+      toast.success(`${product.name} added to cart`, {
+        description: `$${product.price.toLocaleString()}`,
+        action: { label: "View Cart", onClick: () => setOpen(true) },
+      });
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not add this product to your cart."));
+      if (getHttpStatus(err) === 403) {
+        navigate("/login", {
+          replace: true,
+          state: { from: location.pathname },
+        });
+      }
+    } finally {
+      setIsAdding(false);
+    }
   };
+
+  const heroImage = getProductImage(product);
+  const categoryName = getProductCategoryName(product);
+  const ratingValue = typeof product.rating === "number" ? product.rating : null;
+  const reviewCount = typeof product.reviews === "number" ? product.reviews : null;
+  const specs = product.specs ?? {};
+  const available = isProductInStock(product);
 
   return (
     <motion.div
@@ -53,7 +84,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
           </span>
         </div>
       )}
-      {!product.inStock && (
+      {!available && (
         <div className="absolute inset-0 z-20 bg-carbon-900/70 flex items-center justify-center">
           <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground border border-white/20 px-3 py-1.5 rounded-sm">
             Out of Stock
@@ -64,12 +95,18 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       {/* Image */}
       <Link to={`/products/${product.id}`}>
         <div className="aspect-[4/3] bg-carbon-900 overflow-hidden relative">
-          {!imgError ? (
+          {!imgError && heroImage ? (
             <img
-              src={product.image}
+              src={heroImage}
               alt={product.name}
               onError={() => setImgError(true)}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+          ) : heroImage ? (
+            <img
+              src={heroImage}
+              alt={product.name}
+              className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -94,14 +131,20 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       <div className="p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] uppercase tracking-widest text-brand font-bold">
-            {product.category}
+            {categoryName}
           </span>
-          <div className="flex items-center gap-1">
-            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-            <span className="text-[11px] text-muted-foreground font-mono-spec">
-              {product.rating} ({product.reviews.toLocaleString()})
+          {ratingValue !== null && reviewCount !== null ? (
+            <div className="flex items-center gap-1">
+              <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+              <span className="text-[11px] text-muted-foreground font-mono-spec">
+                {ratingValue.toFixed(1)} ({reviewCount.toLocaleString()})
+              </span>
+            </div>
+          ) : (
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+              No reviews
             </span>
-          </div>
+          )}
         </div>
 
         <Link to={`/products/${product.id}`}>
@@ -112,7 +155,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
         {/* Key specs */}
         <div className="mb-3 space-y-0.5">
-          {Object.entries(product.specs)
+          {Object.entries(specs)
             .slice(0, 2)
             .map(([key, val]) => (
               <div key={key} className="flex justify-between text-[11px]">
@@ -138,11 +181,11 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
           </div>
           <button
             onClick={handleAddToCart}
-            disabled={!product.inStock}
+            disabled={!available || isAdding}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand text-brand hover:text-carbon-900 border border-brand/30 hover:border-brand text-xs font-bold uppercase tracking-tight rounded-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
-            Add
+            {isAdding ? "Adding…" : "Add"}
           </button>
         </div>
       </div>

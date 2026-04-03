@@ -1,14 +1,23 @@
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { getProductCategoryName, getProductImage } from "@/types/product";
 
 export default function Cart() {
   const { items, removeItem, updateQuantity, total, clearCart } = useCartStore();
+  const loadCart = useCartStore((s) => s.loadCart);
   const cartTotal = total();
   const shipping = cartTotal > 99 ? 0 : 12.99;
   const tax = cartTotal * 0.08;
   const orderTotal = cartTotal + shipping + tax;
+
+  useEffect(() => {
+    loadCart().catch((error) => {
+      console.error("Failed to load cart", error);
+    });
+  }, [loadCart]);
 
   if (items.length === 0) {
     return (
@@ -57,7 +66,7 @@ export default function Cart() {
               >
                 <div className="w-24 h-24 bg-carbon-900 rounded-sm overflow-hidden flex-shrink-0">
                   <img
-                    src={item.product.image}
+                    src={getProductImage(item.product)}
                     alt={item.product.name}
                     className="w-full h-full object-cover"
                   />
@@ -66,14 +75,14 @@ export default function Cart() {
                   <div className="flex justify-between gap-4">
                     <div>
                       <span className="text-[10px] uppercase tracking-widest text-brand font-bold">
-                        {item.product.category}
+                        {getProductCategoryName(item.product)}
                       </span>
                       <h3 className="font-semibold text-foreground leading-snug mt-0.5 line-clamp-2">
                         {item.product.name}
                       </h3>
                     </div>
                     <button
-                      onClick={() => removeItem(item.product.id)}
+                      onClick={() => removeItem(item.cartItemId)}
                       className="text-muted-foreground hover:text-red-400 transition-colors flex-shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -82,7 +91,7 @@ export default function Cart() {
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center border border-white/10 rounded-sm overflow-hidden">
                       <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
                         className="w-8 h-8 flex items-center justify-center hover:bg-white/10 transition-colors text-muted-foreground"
                       >
                         <Minus className="w-3 h-3" />
@@ -91,7 +100,7 @@ export default function Cart() {
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
                         className="w-8 h-8 flex items-center justify-center hover:bg-white/10 transition-colors text-muted-foreground"
                       >
                         <Plus className="w-3 h-3" />

@@ -7,9 +7,8 @@ import {
 import { useCartStore } from "@/store/cartStore";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-type PaymentMethod = "cod" | "bank_transfer" | "qr_code" | "e_wallet";
+import orderService from "@/services/orderService";
+import type { CheckoutPayload, PaymentMethod, ShippingAddress } from "@/types/order";
 
 const STEPS = ["Shipping", "Payment", "Review"];
 
@@ -239,42 +238,67 @@ function PaymentSimulator({
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Checkout() {
   const [step, setStep] = useState(0);
-  const [shipping, setShipping] = useState({
+  const [shipping, setShipping] = useState<ShippingAddress>({
     firstName: "", lastName: "", email: "", phone: "",
-    address: "", city: "", state: "", zip: "", country: "US",
+    address: "", city: "", state: "", zipCode: "", country: "US",
   });
   const [payMethod, setPayMethod] = useState<PaymentMethod>("cod");
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { items, total, clearCart } = useCartStore();
   const cartTotal = total();
   const taxedTotal = cartTotal * 1.08;
   const navigate = useNavigate();
 
+  const placeOrder = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const paymentMethodAPI =
+        payMethod === "vnpay" ? "VNPAY" :
+        payMethod === "e_wallet" ? "MOMO" :
+        payMethod === "cod" ? "COD" :
+        payMethod === "bank_transfer" ? "BANK_TRANSFER" :
+        payMethod;
+
+      const payload: CheckoutPayload = { ...shipping, paymentMethod: paymentMethodAPI as any };
+      const response = await orderService.checkout(payload);
+
+      if (paymentMethodAPI === "VNPAY" && response.data.paymentUrl) {
+        window.location.href = response.data.paymentUrl;
+        return;
+      }
+
+      clearCart();
+      navigate("/order-success", {
+        state: {
+          method: payMethod,
+          order: response.data,
+        },
+      });
+    } catch (error) {
+      console.error("Checkout failed", error);
+      toast.error("Không thể tạo đơn hàng, vui lòng thử lại.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handlePaymentResult = (result: "success" | "failed") => {
     if (result === "failed") {
       toast.error("Payment failed. Please try another method.");
       return;
     }
-    finalizeCOD();
-  };
-
-  const finalizeCOD = () => {
-    clearCart();
-    navigate("/order-success", {
-      state: {
-        method: payMethod,
-        total: taxedTotal,
-        items,
-        shipping,
-      },
-    });
+    void placeOrder();
   };
 
   // ── Shared field setter helpers ──────────────────────────────────────────────
-  const s = (key: string) => (v: string) =>
-    setShipping((prev) => ({ ...prev, [key]: v }));
+  const updateField =
+    <T extends keyof ShippingAddress>(key: T) =>
+    (value: ShippingAddress[T]) =>
+      setShipping((prev) => ({ ...prev, [key]: value }));
 
   return (
     <div className="min-h-screen pt-20 bg-carbon-900">
@@ -306,14 +330,14 @@ export default function Checkout() {
                     <Truck className="w-5 h-5 text-brand" /> Shipping Information
                   </h2>
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <FieldInput label="First Name"  placeholder="John"             value={shipping.firstName} onChange={s("firstName")} />
-                    <FieldInput label="Last Name"   placeholder="Doe"              value={shipping.lastName}  onChange={s("lastName")} />
-                    <FieldInput label="Email"       placeholder="john@example.com" type="email" value={shipping.email} onChange={s("email")} full />
-                    <FieldInput label="Phone"       placeholder="+1 (555) 000-0000" type="tel" value={shipping.phone} onChange={s("phone")} />
-                    <FieldInput label="Address"     placeholder="123 Main St"      value={shipping.address}   onChange={s("address")} full />
-                    <FieldInput label="City"        placeholder="New York"         value={shipping.city}      onChange={s("city")} />
-                    <FieldInput label="State"       placeholder="NY"               value={shipping.state}     onChange={s("state")} />
-                    <FieldInput label="ZIP Code"    placeholder="10001"            value={shipping.zip}       onChange={s("zip")} />
+                    <FieldInput label="First Name"  placeholder="John"             value={shipping.firstName} onChange={updateField("firstName")} />
+                    <FieldInput label="Last Name"   placeholder="Doe"              value={shipping.lastName}  onChange={updateField("lastName")} />
+                    <FieldInput label="Email"       placeholder="john@example.com" type="email" value={shipping.email} onChange={updateField("email")} full />
+                    <FieldInput label="Phone"       placeholder="+1 (555) 000-0000" type="tel" value={shipping.phone} onChange={updateField("phone")} />
+                    <FieldInput label="Address"     placeholder="123 Main St"      value={shipping.address}   onChange={updateField("address")} full />
+                    <FieldInput label="City"        placeholder="New York"         value={shipping.city}      onChange={updateField("city")} />
+                    <FieldInput label="State"       placeholder="NY"               value={shipping.state}     onChange={updateField("state")} />
+                    <FieldInput label="ZIP Code"    placeholder="10001"            value={shipping.zipCode}   onChange={updateField("zipCode")} />
                   </div>
                   <button
                     onClick={() => setStep(1)}
@@ -362,6 +386,13 @@ export default function Checkout() {
                       icon={<Wallet className="w-5 h-5" />}
                       title="E-Wallet"
                       subtitle="MoMo, ZaloPay, VNPay and more"
+                    />
+                    <PayMethodCard
+                      selected={payMethod === "vnpay"}
+                      onClick={() => setPayMethod("vnpay")}
+                      icon={<CreditCard className="w-5 h-5" />}
+                      title="VNPay"
+                      subtitle="Pay securely with VNPay"
                     />
                   </div>
 
@@ -482,6 +513,25 @@ export default function Checkout() {
                         </div>
                       </motion.div>
                     )}
+
+                    {/* ── VNPay detail ── */}
+                    {payMethod === "vnpay" && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-4 p-4 bg-brand/10 border border-brand/20 rounded-sm flex gap-3">
+                          <CreditCard className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-bold text-foreground">Pay with VNPay</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              You will be redirected to VNPay's secure payment page to complete your transaction.
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </AnimatePresence>
 
                   <div className="flex gap-3 mt-6">
@@ -492,15 +542,15 @@ export default function Checkout() {
                       ← Back
                     </button>
                     <button
-                      onClick={() => payMethod === "cod" ? setStep(2) : null}
-                      disabled={payMethod !== "cod"}
+                      onClick={() => (payMethod === "cod" || payMethod === "vnpay") ? setStep(2) : null}
+                      disabled={payMethod !== "cod" && payMethod !== "vnpay"}
                       className={`flex-1 py-3 font-black text-sm uppercase tracking-widest rounded-sm transition-opacity flex items-center justify-center gap-2 ${
-                        payMethod === "cod"
+                        payMethod === "cod" || payMethod === "vnpay"
                           ? "bg-brand text-carbon-900 hover:opacity-90"
                           : "bg-white/5 text-muted-foreground cursor-not-allowed"
                       }`}
                     >
-                      {payMethod === "cod" ? "Review Order →" : "Complete payment above"}
+                      {(payMethod === "cod" || payMethod === "vnpay") ? "Review Order →" : "Complete payment above"}
                     </button>
                   </div>
                 </motion.div>
@@ -534,30 +584,47 @@ export default function Checkout() {
                   </div>
 
                   {/* COD reminder */}
-                  <div className="mb-6 p-4 bg-brand/10 border border-brand/20 rounded-sm flex gap-3">
-                    <Truck className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-bold text-foreground">Cash on Delivery</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Pay <span className="font-bold text-brand">${taxedTotal.toFixed(2)}</span> when receiving the order
-                      </p>
+                  {payMethod === "cod" && (
+                    <div className="mb-6 p-4 bg-brand/10 border border-brand/20 rounded-sm flex gap-3">
+                      <Truck className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-bold text-foreground">Cash on Delivery</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Pay <span className="font-bold text-brand">${taxedTotal.toFixed(2)}</span> when receiving the order
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setStep(1)}
-                      className="flex-1 py-3 border border-white/10 text-muted-foreground font-bold text-sm uppercase tracking-wide rounded-sm hover:bg-white/5 transition-colors"
-                    >
-                      ← Back
-                    </button>
-                    <button
-                      onClick={finalizeCOD}
-                      className="flex-1 py-3 bg-brand text-carbon-900 font-black text-sm uppercase tracking-widest rounded-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                    >
-                      <Lock className="w-4 h-4" /> Place Order
-                    </button>
-                  </div>
+                  {/* VNPay reminder */}
+                  {payMethod === "vnpay" && (
+                    <div className="mb-6 p-4 bg-brand/10 border border-brand/20 rounded-sm flex gap-3">
+                      <CreditCard className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-bold text-foreground">VNPay Payment</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          You will be redirected to VNPay to pay <span className="font-bold text-brand">${taxedTotal.toFixed(2)}</span> securely.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setStep(1)}
+                        className="flex-1 py-3 border border-white/10 text-muted-foreground font-bold text-sm uppercase tracking-wide rounded-sm hover:bg-white/5 transition-colors"
+                      >
+                        ← Back
+                      </button>
+                      <button
+                        onClick={placeOrder}
+                        disabled={isSubmitting}
+                        className="flex-1 py-3 bg-brand text-carbon-900 font-black text-sm uppercase tracking-widest rounded-sm transition-opacity flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        <Lock className="w-4 h-4" />
+                        {isSubmitting ? "Placing order..." : "Place Order"}
+                      </button>
+                    </div>
                 </motion.div>
               )}
             </AnimatePresence>

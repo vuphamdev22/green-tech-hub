@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Zap, Eye, EyeOff, Check } from "lucide-react";
 import { toast } from "sonner";
+import authService from "@/services/authService";
 
 export default function Register() {
   const [showPw, setShowPw] = useState(false);
@@ -11,8 +12,9 @@ export default function Register() {
   });
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!form.firstName || !form.email || !form.password) {
       toast.error("Please fill in all required fields");
       return;
@@ -21,8 +23,26 @@ export default function Register() {
       toast.error("Please accept the terms");
       return;
     }
-    toast.success("Account created! Welcome to VoltGear 🎉");
-    setTimeout(() => navigate("/profile"), 500);
+
+    try {
+      // ✅ CALL API (chỉ thêm đoạn này)
+      await authService.register({
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      password: form.password,
+      });
+
+      toast.success("Account created! Welcome to VoltGear 🎉");
+
+      setTimeout(() => navigate("/login"), 500); // 👉 chuyển sang login hợp lý hơn
+
+    } catch (error) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Register failed";
+      toast.error(message);
+    }
   };
 
   const passwordStrength = () => {
@@ -118,7 +138,7 @@ export default function Register() {
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            {/* Password strength */}
+
             {form.password && (
               <div className="mt-2">
                 <div className="flex gap-1 mb-1">

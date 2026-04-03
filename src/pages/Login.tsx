@@ -3,20 +3,48 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Zap, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import authService from "@/services/authService";
+import tokenService from "@/services/tokenService";
+import { parseJwt } from "@/utils/jwt";
 
 export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!form.email || !form.password) {
       toast.error("Please fill in all fields");
       return;
     }
-    toast.success("Welcome back!");
-    setTimeout(() => navigate("/profile"), 500);
+
+    try {
+      setLoading(true);
+
+      const res = await authService.login(form);
+      const { accessToken, refreshToken } = res.data;
+      if (!accessToken) {
+        throw new Error("Invalid login response: access token missing");
+      }
+      tokenService.setTokens(accessToken, refreshToken);
+
+      toast.success("Login successful 🚀");
+
+      const payload = parseJwt<{ roles?: string[] }>(accessToken);
+      const roles = payload?.roles ?? [];
+      const destination = roles.includes("ADMIN") ? "/admin" : "/";
+
+      setTimeout(() => navigate(destination, { replace: true }), 500);
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Login failed";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,6 +74,7 @@ export default function Login() {
           onSubmit={handleSubmit}
           className="bg-card border border-white/[0.06] rounded-md p-8 space-y-5"
         >
+          {/* Email */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
               Email
@@ -58,6 +87,8 @@ export default function Login() {
               className="w-full bg-carbon-700 border border-white/10 rounded-sm px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-brand/50 transition-colors"
             />
           </div>
+
+          {/* Password */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
               Password
@@ -78,6 +109,7 @@ export default function Login() {
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+
             <div className="text-right mt-1">
               <a href="#" className="text-xs text-brand hover:underline">
                 Forgot password?
@@ -85,13 +117,17 @@ export default function Login() {
             </div>
           </div>
 
+          {/* Submit */}
           <button
             type="submit"
-            className="w-full py-3 bg-brand text-carbon-900 font-black text-sm uppercase tracking-widest rounded-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            disabled={loading}
+            className="w-full py-3 bg-brand text-carbon-900 font-black text-sm uppercase tracking-widest rounded-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            Sign In <ArrowRight className="w-4 h-4" />
+            {loading ? "Signing in..." : "Sign In"}
+            <ArrowRight className="w-4 h-4" />
           </button>
 
+          {/* Divider */}
           <div className="relative">
             <div className="border-t border-white/5" />
             <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-card px-3 text-xs text-muted-foreground">
@@ -99,6 +135,7 @@ export default function Login() {
             </span>
           </div>
 
+          {/* Google button (giữ nguyên icon SVG) */}
           <button
             type="button"
             className="w-full py-3 border border-white/10 text-foreground font-bold text-sm rounded-sm hover:bg-white/5 hover:border-white/20 transition-colors flex items-center justify-center gap-3"
