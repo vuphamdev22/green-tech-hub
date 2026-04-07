@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, Lock, Unlock, Users, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,51 +6,90 @@ import DataTable, { Column } from "../components/DataTable";
 import AdminModal from "../components/AdminModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import StatusBadge from "../components/StatusBadge";
-import { adminUsers } from "../data/adminMockData";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import type { AdminUser } from "@/types/user";
+import { getAdminUsers, setAdminUserEnabled, deleteAdminUser } from "@/services/adminUserService";
 
-type User = typeof adminUsers[0];
 const pageVariants = { initial: { opacity: 0, y: 12 }, in: { opacity: 1, y: 0 }, out: { opacity: 0 } };
 
 export default function AdminUsers() {
-  const [users, setUsers] = useState(adminUsers);
-  const [viewUser, setViewUser] = useState<User | null>(null);
-  const [lockUser, setLockUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [viewUser, setViewUser] = useState<AdminUser | null>(null);
+  const [toggleUser, setToggleUser] = useState<AdminUser | null>(null);
   const [roleFilter, setRoleFilter] = useState("all");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const filtered = roleFilter === "all" ? users : users.filter((u) => u.role === roleFilter);
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-  const handleLockToggle = () => {
-    if (!lockUser) return;
-    setUsers((prev) => prev.map((u) => u.id === lockUser.id
-      ? { ...u, status: u.status === "active" ? "locked" : "active" } : u));
-    setLockUser(null);
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await getAdminUsers();
+      setUsers(res.data);
+    } catch (err: any) {
+      toast({ title: "Lỗi tải users", description: err?.response?.data?.message || "Không lấy được users", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const columns: Column<User>[] = [
+  const statusOptions = ["all", "ADMIN", "USER"];
+  const filtered = roleFilter === "all" ? users : users.filter((u) => u.role === roleFilter);
+
+  const handleEnableToggle = async () => {
+    if (!toggleUser) return;
+    try {
+      const newEnabled = !toggleUser.enabled;
+      const res = await setAdminUserEnabled(toggleUser.id, newEnabled);
+      setUsers((prev) => prev.map((u) => (u.id === res.data.id ? res.data : u)));
+      toast({ title: "Thành công", description: `User đã ${newEnabled ? "kích hoạt" : "khóa"}` });
+    } catch (err: any) {
+      toast({ title: "Lỗi", description: err?.response?.data?.message || "Không thể đổi trạng thái", variant: "destructive" });
+    } finally {
+      setToggleUser(null);
+    }
+  };
+
+  const handleDelete = async (user: AdminUser) => {
+    try {
+      await deleteAdminUser(user.id);
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      toast({ title: "Đã xóa", description: `User ${user.email} đã bị xóa` });
+    } catch (err: any) {
+      toast({ title: "Lỗi", description: err?.response?.data?.message || "Không thể xóa", variant: "destructive" });
+    }
+  };
+
+  const columns: Column<AdminUser>[] = [
     {
-      key: "name", label: "User", sortable: true,
+      key: "name",
+      label: "User",
+      sortable: true,
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className={cn(
             "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-            row.status === "locked" ? "bg-destructive/20 text-destructive" : "bg-primary/20 text-primary"
+            row.enabled ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"
           )}>
-            {row.avatar}
+            {row.firstName?.[0] ?? "U"}{row.lastName?.[0] ?? "S"}
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">{row.name}</p>
+            <p className="text-sm font-medium text-foreground">{row.firstName} {row.lastName}</p>
             <p className="text-xs text-muted-foreground">{row.email}</p>
           </div>
         </div>
       ),
     },
-    { key: "phone", label: "Phone", render: (row) => <span className="text-xs text-muted-foreground">{row.phone}</span> },
-    { key: "role", label: "Role", render: (row) => <StatusBadge status={row.role} /> },
-    { key: "orders", label: "Orders", sortable: true, render: (row) => <span className="font-semibold text-foreground">{row.orders}</span> },
-    { key: "spent", label: "Total Spent", sortable: true, render: (row) => <span className="font-semibold text-primary">${row.spent.toLocaleString()}</span> },
-    { key: "status", label: "Status", render: (row) => <StatusBadge status={row.status} /> },
-    { key: "joined", label: "Joined", sortable: true, render: (row) => <span className="text-xs text-muted-foreground">{row.joined}</span> },
+    { key: "phone", label: "Phone", render: (row) => <span className="text-xs text-muted-foreground">{row.phone ?? "-"}</span> },
+    { key: "role", label: "Role", render: (row) => <StatusBadge status={row.role.toLowerCase()} /> },
+    { key: "orderCount", label: "Orders", sortable: true, render: (row) => <span className="font-semibold text-foreground">{row.orderCount}</span> },
+    { key: "totalSpent", label: "Total Spent", sortable: true, render: (row) => <span className="font-semibold text-primary">${row.totalSpent.toLocaleString()}</span> },
+    { key: "enabled", label: "Status", render: (row) => <StatusBadge status={row.enabled ? "active" : "locked"} /> },
+    { key: "createdAt", label: "Joined", sortable: true, render: (row) => <span className="text-xs text-muted-foreground">{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "-"}</span> },
   ];
 
   return (
@@ -61,73 +100,59 @@ export default function AdminUsers() {
           <p className="text-xs text-muted-foreground">{users.length} registered users</p>
         </div>
         <div className="flex gap-2">
-          {["all", "customer", "admin"].map((r) => (
-            <button key={r} onClick={() => setRoleFilter(r)}
+          {statusOptions.map((role) => (
+            <button key={role} onClick={() => setRoleFilter(role)}
               className={cn("px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all",
-                roleFilter === r ? "bg-primary text-primary-foreground" : "bg-card border border-border/50 text-muted-foreground hover:bg-muted")}>
-              {r}
+                roleFilter === role ? "bg-primary text-primary-foreground" : "bg-card border border-border/50 text-muted-foreground hover:bg-muted")}>
+              {role === "all" ? "All" : role.toLowerCase()}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Total Users", value: users.length, icon: <Users className="w-4 h-4" />, color: "text-primary" },
-          { label: "Active", value: users.filter((u) => u.status === "active").length, icon: <Search className="w-4 h-4" />, color: "text-primary" },
-          { label: "Locked", value: users.filter((u) => u.status === "locked").length, icon: <Lock className="w-4 h-4" />, color: "text-destructive" },
-        ].map((s) => (
-          <div key={s.label} className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-3">
-            <div className={cn("w-9 h-9 rounded-xl bg-muted flex items-center justify-center", s.color)}>{s.icon}</div>
-            <div>
-              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
       <DataTable
+        isLoading={loading}
         data={filtered}
         columns={columns}
-        searchKeys={["name", "email"]}
+        searchKeys={["firstName", "lastName", "email", "phone"]}
         actions={(row) => (
           <>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => setViewUser(row)}>
               <Eye className="w-3.5 h-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className={cn("h-7 w-7", row.status === "active" ? "text-muted-foreground hover:text-destructive" : "text-yellow-500 hover:text-primary")}
-              onClick={() => setLockUser(row)}>
-              {row.status === "active" ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+            <Button variant="ghost" size="icon" className={cn("h-7 w-7", row.enabled ? "text-muted-foreground hover:text-destructive" : "text-yellow-500 hover:text-primary")}
+              onClick={() => setToggleUser(row)}>
+              {row.enabled ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(row)}>
+              <Users className="w-3.5 h-3.5" />
             </Button>
           </>
         )}
       />
 
-      {/* User Detail */}
       <AdminModal open={!!viewUser} onClose={() => setViewUser(null)} title="User Details" size="lg">
         {viewUser && (
           <div className="space-y-5">
             <div className="flex items-center gap-4 p-4 bg-muted/40 rounded-xl">
               <div className="w-14 h-14 rounded-full bg-primary/20 text-primary font-bold text-lg flex items-center justify-center">
-                {viewUser.avatar}
+                {viewUser.firstName?.[0] ?? "U"}{viewUser.lastName?.[0] ?? "S"}
               </div>
               <div>
-                <p className="text-base font-bold text-foreground">{viewUser.name}</p>
+                <p className="text-base font-bold text-foreground">{viewUser.firstName} {viewUser.lastName}</p>
                 <p className="text-sm text-muted-foreground">{viewUser.email}</p>
                 <div className="flex gap-2 mt-1">
-                  <StatusBadge status={viewUser.role} />
-                  <StatusBadge status={viewUser.status} />
+                  <StatusBadge status={viewUser.role.toLowerCase()} />
+                  <StatusBadge status={viewUser.enabled ? "active" : "locked"} />
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Phone", value: viewUser.phone },
-                { label: "Member Since", value: viewUser.joined },
-                { label: "Total Orders", value: String(viewUser.orders) },
-                { label: "Total Spent", value: `$${viewUser.spent.toLocaleString()}` },
+                { label: "Phone", value: viewUser.phone || "-" },
+                { label: "Joined", value: viewUser.createdAt ? new Date(viewUser.createdAt).toLocaleString() : "-" },
+                { label: "Total Orders", value: String(viewUser.orderCount) },
+                { label: "Total Spent", value: `$${viewUser.totalSpent.toLocaleString()}` },
               ].map((f) => (
                 <div key={f.label} className="bg-muted/30 rounded-xl p-3">
                   <p className="text-xs text-muted-foreground mb-0.5">{f.label}</p>
@@ -140,13 +165,13 @@ export default function AdminUsers() {
       </AdminModal>
 
       <ConfirmDialog
-        open={!!lockUser}
-        onConfirm={handleLockToggle}
-        onCancel={() => setLockUser(null)}
-        title={lockUser?.status === "active" ? "Lock User Account?" : "Unlock User Account?"}
-        message={`${lockUser?.status === "active" ? "Lock" : "Unlock"} account for ${lockUser?.name}?`}
-        confirmLabel={lockUser?.status === "active" ? "Lock Account" : "Unlock Account"}
-        danger={lockUser?.status === "active"}
+        open={!!toggleUser}
+        onConfirm={handleEnableToggle}
+        onCancel={() => setToggleUser(null)}
+        title={toggleUser?.enabled ? "Disable user?" : "Enable user?"}
+        message={`${toggleUser?.enabled ? "Disable" : "Enable"} account for ${toggleUser?.firstName} ${toggleUser?.lastName}?`}
+        confirmLabel={toggleUser?.enabled ? "Disable" : "Enable"}
+        danger={toggleUser?.enabled}
       />
     </motion.div>
   );

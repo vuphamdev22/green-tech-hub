@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Search, Menu, Sun, Moon, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import userService from "@/services/userService";
 
 interface AdminNavbarProps {
   onMenuToggle: () => void;
@@ -12,6 +13,25 @@ interface AdminNavbarProps {
 export default function AdminNavbar({ onMenuToggle, title }: AdminNavbarProps) {
   const [dark, setDark] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [userName, setUserName] = useState("Admin");
+  const [userRole, setUserRole] = useState("super admin");
+
+  useEffect(() => {
+    const loadUserName = async () => {
+      try {
+        const response = await userService.getProfile();
+        const firstName = response.data.firstName?.trim();
+        const lastName = response.data.lastName?.trim();
+        const displayName = [firstName, lastName].filter(Boolean).join(" ") || "Admin";
+        setUserName(displayName);
+        setUserRole(response.data.role ? response.data.role.toLowerCase() : "super admin");
+      } catch (error) {
+        console.error("Failed to load admin name", error);
+      }
+    };
+
+    void loadUserName();
+  }, []);
 
   const notifications = [
     { id: 1, text: "New order #ORD-10042 placed", time: "2m ago", unread: true },
@@ -95,8 +115,8 @@ export default function AdminNavbar({ onMenuToggle, title }: AdminNavbarProps) {
             <User className="w-4 h-4 text-primary" />
           </div>
           <div className="hidden md:block">
-            <p className="text-xs font-medium leading-tight text-foreground">Admin</p>
-            <p className="text-[10px] text-muted-foreground">super admin</p>
+            <p className="text-xs font-medium leading-tight text-foreground">{userName}</p>
+            <p className="text-[10px] text-muted-foreground">{userRole}</p>
           </div>
         </div>
       </div>

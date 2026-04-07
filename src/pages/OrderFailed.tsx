@@ -140,7 +140,7 @@ export default function OrderFailed() {
             <div>
               <p className="text-muted-foreground mb-1">Payment Method</p>
               <p className="font-bold text-foreground capitalize">
-                {order.paymentMethod === "VNPAY" ? "VNPay" : "Unknown"}
+                {order.paymentMethod === "vnpay" ? "VNPay" : "Unknown"}
               </p>
             </div>
             <div>

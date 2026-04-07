@@ -113,19 +113,6 @@ export const adminReviews = [
   { id: 8, product: "Logitech MX Master 3S", user: "Henry Park", rating: 3, comment: "Good mouse but the scroll wheel sometimes skips. Software is decent.", date: "2024-01-08", status: "rejected" },
 ];
 
-export const inventoryData = [
-  { id: 1, product: "MacBook Pro 16\"", sku: "APP-MBP16-001", category: "Laptops", currentStock: 45, minStock: 10, maxStock: 100, lastRestocked: "2024-01-10", status: "in_stock" },
-  { id: 2, product: "RTX 4090 FE", sku: "NVI-4090-003", category: "Components", currentStock: 12, minStock: 15, maxStock: 80, lastRestocked: "2024-01-08", status: "low_stock" },
-  { id: 3, product: "Corsair K100 RGB", sku: "COR-K100-010", category: "Keyboards", currentStock: 8, minStock: 20, maxStock: 150, lastRestocked: "2024-01-05", status: "low_stock" },
-  { id: 4, product: "Razer BlackShark V2", sku: "RAZ-BSV2-011", category: "Headphones", currentStock: 0, minStock: 15, maxStock: 100, lastRestocked: "2023-12-20", status: "out_of_stock" },
-  { id: 5, product: "Samsung 990 Pro 2TB", sku: "SAM-990-005", category: "Storage", currentStock: 234, minStock: 30, maxStock: 300, lastRestocked: "2024-01-12", status: "in_stock" },
-  { id: 6, product: "Intel Core i9-14900K", sku: "INT-I9-004", category: "Components", currentStock: 67, minStock: 10, maxStock: 120, lastRestocked: "2024-01-09", status: "in_stock" },
-  { id: 7, product: "Dell UltraSharp 27\"", sku: "DEL-US27-007", category: "Monitors", currentStock: 56, minStock: 10, maxStock: 80, lastRestocked: "2024-01-11", status: "in_stock" },
-  { id: 8, product: "LG UltraWide 34\"", sku: "LG-UW34-008", category: "Monitors", currentStock: 5, minStock: 8, maxStock: 60, lastRestocked: "2024-01-03", status: "low_stock" },
-  { id: 9, product: "Corsair Vengeance 64GB", sku: "COR-VEN-006", category: "Memory", currentStock: 89, minStock: 20, maxStock: 200, lastRestocked: "2024-01-07", status: "in_stock" },
-  { id: 10, product: "NZXT H510 Case", sku: "NZX-H510-012", category: "Cases", currentStock: 145, minStock: 15, maxStock: 200, lastRestocked: "2024-01-06", status: "in_stock" },
-];
-
 export const userGrowthData = [
   { month: "Jan", users: 420, newUsers: 45 },
   { month: "Feb", users: 480, newUsers: 60 },

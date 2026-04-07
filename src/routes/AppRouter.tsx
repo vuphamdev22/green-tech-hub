@@ -12,6 +12,7 @@ import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
 import OrderSuccess from "@/pages/OrderSuccess";
 import OrderFailed from "@/pages/OrderFailed";
+import PaymentResult from "@/pages/PaymentResult";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Profile from "@/pages/Profile";
@@ -43,6 +44,7 @@ export default function AppRouter() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/order-failed" element={<OrderFailed />} />
+          <Route path="/payment-result" element={<PaymentResult />} />
           <Route path="/profile" element={<Profile />} />
         </Route>
 

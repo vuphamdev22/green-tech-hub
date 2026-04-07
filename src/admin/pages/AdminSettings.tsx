@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Store, Bell, Shield, Save, Camera, Key, Mail, Phone, Globe, Palette } from "lucide-react";
+import { User, Store, Bell, Shield, Save, Camera, Key, Mail, Phone, Globe, Palette, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import userService from "@/services/userService";
+import authService from "@/services/authService";
+import tokenService from "@/services/tokenService";
 import { cn } from "@/lib/utils";
 
 const pageVariants = { initial: { opacity: 0, y: 12 }, in: { opacity: 1, y: 0 }, out: { opacity: 0 } };
@@ -51,9 +56,14 @@ function Toggle({ checked, onChange, label, description }: { checked: boolean; o
 export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState("profile");
   const [saved, setSaved] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
 
   // Profile state
-  const [profile, setProfile] = useState({ name: "Frank Lee", email: "frank@voltgear.com", phone: "+1 555-0106", bio: "Super Admin at VoltGear" });
+  const [profile, setProfile] = useState({ firstName: "", lastName: "", email: "", phone: "", address: "" });
 
   // Store state
   const [store, setStore] = useState({ name: "VoltGear", email: "support@voltgear.com", currency: "USD", timezone: "America/New_York", website: "https://voltgear.com" });
@@ -64,10 +74,91 @@ export default function AdminSettings() {
   // Security state
   const [security, setSecurity] = useState({ twoFactor: false, sessionTimeout: "30", loginAlerts: true });
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
+  const [loggingOut, setLoggingOut] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await userService.getProfile();
+        setProfile({
+          firstName: response.data.firstName ?? "",
+          lastName: response.data.lastName ?? "",
+          email: response.data.email ?? "",
+          phone: response.data.phone ?? "",
+          address: response.data.address ?? "",
+        });
+      } catch (err) {
+        console.error("Unable to load profile", err);
+      }
+    };
+
+    void loadProfile();
+  }, []);
+
+  const handleSave = async () => {
+    if (activeTab !== "profile") {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      return;
+    }
+
+    setError(null);
+    setSavingProfile(true);
+
+    try {
+      await userService.updateProfile({
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        phone: profile.phone,
+        address: profile.address,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError("Không thể lưu thông tin cá nhân");
+      console.error(err);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+    setPasswordMessage(null);
+
+    if (passwords.newPass !== passwords.confirm) {
+      setPasswordError("Mật khẩu mới không khớp");
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      await userService.changePassword({ oldPassword: passwords.current, newPassword: passwords.newPass });
+      setPasswordMessage("Mật khẩu đã được cập nhật");
+      setPasswords({ current: "", newPass: "", confirm: "" });
+    } catch (err) {
+      setPasswordError("Không thể đổi mật khẩu");
+      console.error(err);
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+
+    try {
+      await authService.logout();
+      toast.success("Bạn đã đăng xuất");
+    } catch (err) {
+      toast.error("Không thể đăng xuất ngay bây giờ");
+      console.error(err);
+    } finally {
+      tokenService.clearTokens();
+      navigate("/login", { replace: true });
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -77,11 +168,17 @@ export default function AdminSettings() {
           <h1 className="text-lg font-bold text-foreground">Settings</h1>
           <p className="text-xs text-muted-foreground">Manage your admin preferences</p>
         </div>
-        <Button size="sm" className="gap-1.5" onClick={handleSave}>
+        <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={savingProfile || savingPassword}>
           <Save className="w-3.5 h-3.5" />
           {saved ? "Saved!" : "Save Changes"}
         </Button>
       </div>
+
+      {error && (
+        <div className="rounded-2xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted/50 rounded-xl p-1 w-fit">
@@ -113,14 +210,14 @@ export default function AdminSettings() {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-primary font-bold text-xl">
-                  FL
+                  {`${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}`.toUpperCase()}
                 </div>
                 <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow text-primary-foreground">
                   <Camera className="w-3 h-3" />
                 </button>
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">{profile.name}</p>
+                <p className="text-sm font-semibold text-foreground">{`${profile.firstName} ${profile.lastName}`.trim() || "Admin"}</p>
                 <p className="text-xs text-muted-foreground">Super Admin</p>
                 <button className="text-xs text-primary hover:underline mt-0.5">Change avatar</button>
               </div>
@@ -129,17 +226,24 @@ export default function AdminSettings() {
             {/* Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs font-medium mb-1.5 block">Full Name</Label>
+                <Label className="text-xs font-medium mb-1.5 block">First Name</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <Input value={profile.name} onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))} className="pl-9 h-9 text-sm" />
+                  <Input value={profile.firstName} onChange={(e) => setProfile((p) => ({ ...p, firstName: e.target.value }))} className="pl-9 h-9 text-sm" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-medium mb-1.5 block">Last Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input value={profile.lastName} onChange={(e) => setProfile((p) => ({ ...p, lastName: e.target.value }))} className="pl-9 h-9 text-sm" />
                 </div>
               </div>
               <div>
                 <Label className="text-xs font-medium mb-1.5 block">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <Input type="email" value={profile.email} onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))} className="pl-9 h-9 text-sm" />
+                  <Input type="email" value={profile.email} disabled className="pl-9 h-9 text-sm bg-muted/30" />
                 </div>
               </div>
               <div>
@@ -149,9 +253,9 @@ export default function AdminSettings() {
                   <Input value={profile.phone} onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))} className="pl-9 h-9 text-sm" />
                 </div>
               </div>
-              <div>
-                <Label className="text-xs font-medium mb-1.5 block">Bio</Label>
-                <Input value={profile.bio} onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))} className="h-9 text-sm" />
+              <div className="md:col-span-2">
+                <Label className="text-xs font-medium mb-1.5 block">Address</Label>
+                <Input value={profile.address} onChange={(e) => setProfile((p) => ({ ...p, address: e.target.value }))} className="h-9 text-sm" />
               </div>
             </div>
           </SectionCard>
@@ -162,6 +266,7 @@ export default function AdminSettings() {
       {activeTab === "store" && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           <SectionCard title="Store Configuration">
+            <p className="text-xs text-muted-foreground">These settings are currently UI placeholders until a backend store settings API is available.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs font-medium mb-1.5 block">Store Name</Label>
@@ -226,6 +331,7 @@ export default function AdminSettings() {
       {activeTab === "notifications" && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           <SectionCard title="Email Notifications">
+            <p className="text-xs text-muted-foreground">Notification options are currently managed in the UI only; backend notification preferences are not yet connected.</p>
             <div className="divide-y divide-border/30">
               <Toggle checked={notifs.newOrder} onChange={() => setNotifs((n) => ({ ...n, newOrder: !n.newOrder }))}
                 label="New Orders" description="Get notified when a new order is placed" />
@@ -252,6 +358,7 @@ export default function AdminSettings() {
       {activeTab === "security" && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           <SectionCard title="Change Password">
+            <p className="text-xs text-muted-foreground">Password changes are connected to the backend. Other security options are currently local UI state only.</p>
             <div className="space-y-3 max-w-sm">
               {[
                 { label: "Current Password", key: "current" },
@@ -272,7 +379,11 @@ export default function AdminSettings() {
                   </div>
                 </div>
               ))}
-              <Button size="sm" className="w-full mt-1">Update Password</Button>
+              <Button size="sm" className="w-full mt-1" onClick={handleChangePassword} disabled={savingPassword}>
+                {savingPassword ? "Updating..." : "Update Password"}
+              </Button>
+              {passwordError && <p className="text-xs text-destructive mt-2">{passwordError}</p>}
+              {passwordMessage && <p className="text-xs text-foreground mt-2">{passwordMessage}</p>}
             </div>
           </SectionCard>
 
@@ -294,6 +405,19 @@ export default function AdminSettings() {
                 <option value="0">Never</option>
               </select>
             </div>
+          </SectionCard>
+
+          <SectionCard title="Sign Out">
+            <p className="text-xs text-muted-foreground">Use this button to end your admin session and return to the login screen.</p>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full mt-3"
+              onClick={handleLogout}
+              disabled={loggingOut}
+            >
+              {loggingOut ? "Signing out..." : "Sign out"}
+            </Button>
           </SectionCard>
 
           <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4">

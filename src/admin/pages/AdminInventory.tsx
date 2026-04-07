@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, RefreshCw, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,70 +7,118 @@ import { Label } from "@/components/ui/label";
 import DataTable, { Column } from "../components/DataTable";
 import AdminModal from "../components/AdminModal";
 import StatusBadge from "../components/StatusBadge";
-import { inventoryData } from "../data/adminMockData";
 import { cn } from "@/lib/utils";
+import { getAdminInventory, updateAdminInventoryStock, type AdminInventoryItem } from "../../services/adminInventoryService";
 
-type InventoryItem = typeof inventoryData[0];
 const pageVariants = { initial: { opacity: 0, y: 12 }, in: { opacity: 1, y: 0 }, out: { opacity: 0 } };
 
 export default function AdminInventory() {
-  const [inventory, setInventory] = useState(inventoryData);
-  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
+  const [inventory, setInventory] = useState<AdminInventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editItem, setEditItem] = useState<AdminInventoryItem | null>(null);
   const [newStock, setNewStock] = useState("");
+  const [updating, setUpdating] = useState(false);
 
-  const handleUpdateStock = () => {
-    if (!editItem) return;
-    const stock = Number(newStock);
-    setInventory((prev) => prev.map((x) => x.id === editItem.id ? {
-      ...x,
-      currentStock: stock,
-      status: stock === 0 ? "out_of_stock" : stock < x.minStock ? "low_stock" : "in_stock",
-      lastRestocked: stock > x.currentStock ? new Date().toISOString().split("T")[0] : x.lastRestocked,
-    } : x));
-    setEditItem(null);
+  const fetchInventory = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getAdminInventory();
+      setInventory(response.data);
+    } catch (err) {
+      setError("Không thể tải dữ liệu kho");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const lowStockCount = inventory.filter((i) => i.status === "low_stock").length;
-  const outOfStockCount = inventory.filter((i) => i.status === "out_of_stock").length;
+  useEffect(() => {
+    void fetchInventory();
+  }, []);
 
-  const columns: Column<InventoryItem>[] = [
+  const handleUpdateStock = async () => {
+    if (!editItem) return;
+    const stockValue = Number(newStock);
+    if (Number.isNaN(stockValue) || stockValue < 0) {
+      setError("Số lượng không hợp lệ");
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+    try {
+      const response = await updateAdminInventoryStock(editItem.productId, { stock: stockValue });
+      setInventory((prev) => prev.map((item) => item.productId === response.data.productId ? response.data : item));
+      setEditItem(null);
+    } catch (err) {
+      setError("Không thể cập nhật tồn kho");
+      console.error(err);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const lowStockCount = useMemo(() => inventory.filter((item) => item.status === "low_stock").length, [inventory]);
+  const outOfStockCount = useMemo(() => inventory.filter((item) => item.status === "out_of_stock").length, [inventory]);
+  const inStockCount = useMemo(() => inventory.filter((item) => item.status === "in_stock").length, [inventory]);
+
+  const columns: Column<AdminInventoryItem>[] = [
     {
-      key: "product", label: "Product", sortable: true,
+      key: "product",
+      label: "Product",
+      sortable: true,
       render: (row) => (
-        <div>
-          <p className="text-sm font-medium text-foreground">{row.product}</p>
-          <p className="text-xs font-mono text-muted-foreground">{row.sku}</p>
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 overflow-hidden rounded-xl border border-border/80 bg-muted">
+            {row.imageUrl ? (
+              <img src={row.imageUrl} alt={row.product} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">No image</div>
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">{row.product}</p>
+            <p className="text-xs font-mono text-muted-foreground">{row.sku ?? "-"}</p>
+          </div>
         </div>
       ),
     },
-    { key: "category", label: "Category", render: (row) => <span className="text-xs text-muted-foreground">{row.category}</span> },
+    { key: "category", label: "Category", render: (row) => <span className="text-xs text-muted-foreground">{row.category ?? "-"}</span> },
     {
-      key: "currentStock", label: "Current Stock", sortable: true,
-      render: (row) => (
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className={cn(
-              "text-sm font-bold",
-              row.status === "out_of_stock" ? "text-destructive" :
-              row.status === "low_stock" ? "text-yellow-500" : "text-foreground"
-            )}>
-              {row.currentStock}
-            </span>
-            <span className="text-xs text-muted-foreground">/ {row.maxStock}</span>
+      key: "currentStock",
+      label: "Current Stock",
+      sortable: true,
+      render: (row) => {
+        const percent = row.maxStock ? Math.min(100, (row.currentStock / row.maxStock) * 100) : 0;
+        return (
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className={cn(
+                "text-sm font-bold",
+                row.status === "out_of_stock" ? "text-destructive" : row.status === "low_stock" ? "text-yellow-500" : "text-foreground"
+              )}>{row.currentStock}</span>
+              <span className="text-xs text-muted-foreground">/ {row.maxStock ?? "-"}</span>
+            </div>
+            <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className={cn("h-full rounded-full transition-all",
+                row.status === "out_of_stock" ? "bg-destructive" : row.status === "low_stock" ? "bg-yellow-500" : "bg-primary"
+              )} style={{ width: `${percent}%` }} />
+            </div>
           </div>
-          <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-            <div className={cn("h-full rounded-full transition-all",
-              row.status === "out_of_stock" ? "bg-destructive" :
-              row.status === "low_stock" ? "bg-yellow-500" : "bg-primary"
-            )} style={{ width: `${Math.min(100, (row.currentStock / row.maxStock) * 100)}%` }} />
-          </div>
-        </div>
-      ),
+        );
+      },
     },
-    { key: "minStock", label: "Min Stock", render: (row) => <span className="text-xs text-muted-foreground">{row.minStock}</span> },
-    { key: "lastRestocked", label: "Last Restocked", render: (row) => <span className="text-xs text-muted-foreground">{row.lastRestocked}</span> },
+    { key: "minStock", label: "Min", render: (row) => <span className="text-xs text-muted-foreground">{row.minStock}</span> },
+    { key: "maxStock", label: "Max", render: (row) => <span className="text-xs text-muted-foreground">{row.maxStock}</span> },
+    { key: "lastRestocked", label: "Last Restocked", render: (row) => <span className="text-xs text-muted-foreground">{row.lastRestocked ?? "-"}</span> },
     { key: "status", label: "Status", render: (row) => <StatusBadge status={row.status} /> },
   ];
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Loading inventory...</div>;
+  }
 
   return (
     <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={{ duration: 0.3 }} className="space-y-5">
@@ -81,7 +129,8 @@ export default function AdminInventory() {
         </div>
       </div>
 
-      {/* Alerts */}
+      {error && <div className="text-destructive font-semibold text-sm">{error}</div>}
+
       {(lowStockCount > 0 || outOfStockCount > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {lowStockCount > 0 && (
@@ -107,10 +156,9 @@ export default function AdminInventory() {
         </div>
       )}
 
-      {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "In Stock", count: inventory.filter((i) => i.status === "in_stock").length, color: "text-primary" },
+        {[ 
+          { label: "In Stock", count: inStockCount, color: "text-primary" },
           { label: "Low Stock", count: lowStockCount, color: "text-yellow-500" },
           { label: "Out of Stock", count: outOfStockCount, color: "text-destructive" },
         ].map((s) => (
@@ -137,7 +185,9 @@ export default function AdminInventory() {
         footer={
           <div className="flex gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => setEditItem(null)}>Cancel</Button>
-            <Button size="sm" onClick={handleUpdateStock}><RefreshCw className="w-3.5 h-3.5 mr-1.5" />Update Stock</Button>
+            <Button size="sm" onClick={handleUpdateStock} disabled={updating}>
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />Update Stock
+            </Button>
           </div>
         }>
         {editItem && (
@@ -145,7 +195,7 @@ export default function AdminInventory() {
             <div className="bg-muted/40 rounded-xl p-4">
               <p className="text-xs text-muted-foreground mb-0.5">Product</p>
               <p className="text-sm font-semibold text-foreground">{editItem.product}</p>
-              <p className="text-xs font-mono text-muted-foreground mt-0.5">{editItem.sku}</p>
+              <p className="text-xs font-mono text-muted-foreground mt-0.5">{editItem.sku ?? "-"}</p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="bg-muted/30 rounded-lg p-3">
@@ -163,7 +213,8 @@ export default function AdminInventory() {
             </div>
             <div>
               <Label className="text-xs font-medium mb-1.5 block">New Stock Quantity</Label>
-              <Input type="number" value={newStock} onChange={(e) => setNewStock(e.target.value)} placeholder="Enter quantity" className="h-9 text-sm" min={0} max={editItem.maxStock} />
+              <Input type="number" value={newStock} onChange={(e) => setNewStock(e.target.value)} placeholder="Enter quantity"
+                className="h-9 text-sm" min={0} max={editItem.maxStock} />
             </div>
           </div>
         )}
