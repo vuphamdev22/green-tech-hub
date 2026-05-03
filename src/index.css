@@ -60,60 +60,66 @@
     --sidebar-ring: 142 71% 45%;
   }
 
-  /* Light Mode - Bright, clean, screenshot-friendly (default) */
+  /* ====================================================================
+     Light Mode — Unified Slate + Green design system.
+     Single neutral hue (slate, ~220) for all surfaces & text.
+     Green is the ONLY chromatic accent. No competing blue surfaces.
+     ==================================================================== */
   html:not(.dark) {
-    /* Soft, airy background with a hint of cool blue */
-    --background: 210 40% 98%;       /* #F6F9FC - very soft blue-white */
-    --foreground: 222 32% 14%;       /* #182030 - deep slate, high contrast */
-
-    --card: 0 0% 100%;               /* Pure white cards for clarity */
-    --card-foreground: 222 32% 14%;
-
+    /* Surfaces — neutral slate ramp, light → dark */
+    --background: 220 20% 98%;          /* app shell  #F7F8FA */
+    --surface:    220 20% 96%;          /* section bg #EFF1F5 (alias) */
+    --card: 0 0% 100%;                  /* cards      #FFFFFF */
+    --card-foreground: 220 25% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 32% 14%;
+    --popover-foreground: 220 25% 14%;
 
-    /* Primary green (slightly deeper for AA contrast on white) */
-    --primary: 152 64% 36%;          /* #21A664 - calm, professional green */
+    /* Text */
+    --foreground: 220 25% 14%;          /* primary text  #1B2230 */
+
+    /* Primary — single brand green (AA on white = 4.7:1) */
+    --primary: 152 60% 36%;             /* #24A164 */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - cool light surface */
-    --secondary: 215 28% 94%;        /* #ECF0F5 */
-    --secondary-foreground: 222 22% 28%; /* #38445A */
+    /* Secondary / muted — same neutral hue, different lightness */
+    --secondary: 220 16% 94%;           /* #ECEEF2 */
+    --secondary-foreground: 220 20% 24%;
+    --muted: 220 16% 94%;               /* #ECEEF2 */
+    --muted-foreground: 220 10% 46%;    /* #6B7280 — secondary text */
 
-    --muted: 215 28% 95%;            /* #EEF1F6 */
-    --muted-foreground: 215 16% 47%; /* #677488 - readable secondary text */
+    /* Accent — subtle neutral hover surface (NOT a second color) */
+    --accent: 220 18% 95%;              /* #EDF0F4 */
+    --accent-foreground: 220 25% 14%;
 
-    --accent: 210 90% 96%;           /* #ECF4FF - soft blue accent surface */
-    --accent-foreground: 222 47% 24%;
-
-    --destructive: 0 72% 51%;        /* clean red */
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 24% 90%;           /* #DDE3EC - subtle, soft */
-    --input: 214 24% 90%;
-    --ring: 152 64% 36%;
+    /* Borders — one consistent token everywhere */
+    --border: 220 15% 90%;              /* #E1E4EA */
+    --input:  220 15% 90%;
+    --ring:   152 60% 36%;              /* focus ring matches primary */
 
-    --radius: 0.625rem;              /* 10px - softer corners */
+    --radius: 0.625rem;                 /* 10px — unified corners */
 
-    /* Carbon palette - light mode hierarchy */
-    --carbon-900: 222 32% 14%;       /* darkest text */
-    --carbon-800: 222 22% 28%;       /* subheading */
-    --carbon-700: 215 16% 47%;       /* body secondary */
-    --carbon-600: 214 24% 86%;       /* dividers */
+    /* Carbon ramp aligned to the same slate hue */
+    --carbon-900: 220 25% 14%;          /* headings */
+    --carbon-800: 220 20% 24%;          /* subheadings */
+    --carbon-700: 220 10% 46%;          /* body secondary */
+    --carbon-600: 220 15% 88%;          /* dividers */
 
-    --brand: 152 64% 36%;
-    --brand-glow: 152 64% 36%;
-    --brand-dim: 152 50% 60%;
+    --brand: 152 60% 36%;
+    --brand-glow: 152 60% 36%;
+    --brand-dim: 152 40% 58%;
 
-    /* Sidebar */
+    /* Sidebar — uses the SAME tokens as the rest of the app */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 32% 14%;
-    --sidebar-primary: 152 64% 36%;
+    --sidebar-foreground: 220 25% 14%;
+    --sidebar-primary: 152 60% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 90% 96%;
-    --sidebar-accent-foreground: 222 32% 14%;
-    --sidebar-border: 214 24% 90%;
-    --sidebar-ring: 152 64% 36%;
+    --sidebar-accent: 220 18% 95%;       /* matches --accent */
+    --sidebar-accent-foreground: 220 25% 14%;
+    --sidebar-border: 220 15% 90%;       /* matches --border */
+    --sidebar-ring: 152 60% 36%;
   }
 }
 
@@ -396,4 +402,104 @@ html.screenshot-mode .card {
 html.screenshot-mode .chatbot-widget,
 html.screenshot-mode [data-chatbot-widget] {
   display: none !important;
+}
+
+/* ========================================================================
+   Light Theme — Global Consistency Layer
+   Normalizes shadows, radii, hover states, and surface colors so every
+   region (cards, sidebar, modals, dropdowns, tables) feels unified.
+   Scoped to html:not(.dark) only; dark mode untouched.
+   ======================================================================== */
+
+/* Unified card shadow (replaces a mix of shadow-sm/md/lg/xl) */
+html:not(.dark) .shadow-sm,
+html:not(.dark) .shadow,
+html:not(.dark) .shadow-md {
+  box-shadow:
+    0 1px 2px hsl(220 25% 14% / 0.04),
+    0 1px 3px hsl(220 25% 14% / 0.06) !important;
+}
+html:not(.dark) .shadow-lg,
+html:not(.dark) .shadow-xl,
+html:not(.dark) .shadow-2xl {
+  box-shadow:
+    0 4px 12px hsl(220 25% 14% / 0.06),
+    0 2px 4px hsl(220 25% 14% / 0.04) !important;
+}
+
+/* Soft, consistent hover surface — uses --accent token */
+html:not(.dark) .hover\:bg-gray-50:hover,
+html:not(.dark) .hover\:bg-gray-100:hover,
+html:not(.dark) .hover\:bg-slate-50:hover,
+html:not(.dark) .hover\:bg-slate-100:hover,
+html:not(.dark) .hover\:bg-zinc-50:hover,
+html:not(.dark) .hover\:bg-neutral-50:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Normalize stray gray text classes to the muted-foreground token */
+html:not(.dark) .text-gray-400,
+html:not(.dark) .text-gray-500,
+html:not(.dark) .text-slate-400,
+html:not(.dark) .text-slate-500,
+html:not(.dark) .text-zinc-400,
+html:not(.dark) .text-zinc-500,
+html:not(.dark) .text-neutral-500 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+html:not(.dark) .text-gray-600,
+html:not(.dark) .text-gray-700,
+html:not(.dark) .text-slate-600,
+html:not(.dark) .text-slate-700 {
+  color: hsl(var(--carbon-800)) !important;
+}
+html:not(.dark) .text-gray-800,
+html:not(.dark) .text-gray-900,
+html:not(.dark) .text-slate-800,
+html:not(.dark) .text-slate-900,
+html:not(.dark) .text-black {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Normalize stray gray surfaces to design-system tokens */
+html:not(.dark) .bg-gray-50,
+html:not(.dark) .bg-slate-50,
+html:not(.dark) .bg-zinc-50,
+html:not(.dark) .bg-neutral-50 {
+  background-color: hsl(var(--surface, var(--muted))) !important;
+}
+html:not(.dark) .bg-gray-100,
+html:not(.dark) .bg-slate-100,
+html:not(.dark) .bg-zinc-100,
+html:not(.dark) .bg-neutral-100 {
+  background-color: hsl(var(--muted)) !important;
+}
+html:not(.dark) .bg-white {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Normalize gray borders */
+html:not(.dark) .border-gray-100,
+html:not(.dark) .border-gray-200,
+html:not(.dark) .border-slate-100,
+html:not(.dark) .border-slate-200,
+html:not(.dark) .border-zinc-200,
+html:not(.dark) .border-neutral-200 {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Headings consistently use the darkest carbon token */
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4 {
+  color: hsl(var(--carbon-900));
+  letter-spacing: -0.02em;
+}
+
+/* Soft, uniform focus ring across the app */
+html:not(.dark) :focus-visible {
+  outline: 2px solid hsl(var(--ring) / 0.5);
+  outline-offset: 2px;
+  border-radius: var(--radius);
 }
