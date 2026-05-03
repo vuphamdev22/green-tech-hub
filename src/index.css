@@ -60,62 +60,60 @@
     --sidebar-ring: 142 71% 45%;
   }
 
-  /* Light Mode - when .dark class is NOT present */
+  /* Light Mode - Bright, clean, screenshot-friendly (default) */
   html:not(.dark) {
-    /* Clean Modern SaaS Light Theme */
-    --background: 220 14% 97%;      /* #F8FAFC - Very light neutral */
-    --foreground: 220 13% 9%;       /* #111827 - High contrast dark text */
+    /* Soft, airy background with a hint of cool blue */
+    --background: 210 40% 98%;       /* #F6F9FC - very soft blue-white */
+    --foreground: 222 32% 14%;       /* #182030 - deep slate, high contrast */
 
-    --card: 0 0% 100%;              /* #FFFFFF - Pure white cards */
-    --card-foreground: 220 13% 9%;  /* #111827 - Dark text on white */
+    --card: 0 0% 100%;               /* Pure white cards for clarity */
+    --card-foreground: 222 32% 14%;
 
-    --popover: 0 0% 100%;           /* #FFFFFF - White popover */
-    --popover-foreground: 220 13% 9%; /* #111827 - Dark text */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 32% 14%;
 
-    /* Primary green - for CTA buttons and highlights ONLY */
-    --primary: 142 69% 39%;         /* #16A34A - Professional green */
-    --primary-foreground: 0 0% 100%; /* #FFFFFF - White text on green */
+    /* Primary green (slightly deeper for AA contrast on white) */
+    --primary: 152 64% 36%;          /* #21A664 - calm, professional green */
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary - light gray background */
-    --secondary: 220 13% 91%;       /* #E5E7EB - Light gray */
-    --secondary-foreground: 220 9% 46%; /* #6B7280 - Medium gray text */
+    /* Secondary - cool light surface */
+    --secondary: 215 28% 94%;        /* #ECF0F5 */
+    --secondary-foreground: 222 22% 28%; /* #38445A */
 
-    /* Muted - secondary/disabled text */
-    --muted: 220 13% 91%;           /* #E5E7EB - Light gray background */
-    --muted-foreground: 220 9% 46%; /* #6B7280 - Medium gray text */
+    --muted: 215 28% 95%;            /* #EEF1F6 */
+    --muted-foreground: 215 16% 47%; /* #677488 - readable secondary text */
 
-    --accent: 142 69% 39%;          /* #16A34A - Green accent */
-    --accent-foreground: 0 0% 100%; /* #FFFFFF - White text on accent */
+    --accent: 210 90% 96%;           /* #ECF4FF - soft blue accent surface */
+    --accent-foreground: 222 47% 24%;
 
-    --destructive: 220 90% 56%;     /* #EF4444 - Clean red */
-    --destructive-foreground: 0 0% 100%; /* #FFFFFF - White on red */
+    --destructive: 0 72% 51%;        /* clean red */
+    --destructive-foreground: 0 0% 100%;
 
-    /* Borders and inputs */
-    --border: 220 13% 91%;          /* #E5E7EB - Light gray borders */
-    --input: 0 0% 100%;             /* #FFFFFF - White input backgrounds */
-    --ring: 142 69% 39%;            /* #16A34A - Green focus ring */
+    --border: 214 24% 90%;           /* #DDE3EC - subtle, soft */
+    --input: 214 24% 90%;
+    --ring: 152 64% 36%;
 
-    --radius: 0.5rem;               /* 8px - Modern spacing */
+    --radius: 0.625rem;              /* 10px - softer corners */
 
-    /* Carbon palette - light mode versions (grays for hierarchy) */
-    --carbon-900: 220 13% 9%;       /* #111827 - Darkest (headings) */
-    --carbon-800: 220 13% 20%;      /* #1F2937 - Dark (subheadings) */
-    --carbon-700: 220 9% 46%;       /* #6B7280 - Medium (body text) */
-    --carbon-600: 220 13% 80%;      /* #D1D5DB - Light (dividers) */
+    /* Carbon palette - light mode hierarchy */
+    --carbon-900: 222 32% 14%;       /* darkest text */
+    --carbon-800: 222 22% 28%;       /* subheading */
+    --carbon-700: 215 16% 47%;       /* body secondary */
+    --carbon-600: 214 24% 86%;       /* dividers */
 
-    --brand: 142 69% 39%;           /* #16A34A - Green */
-    --brand-glow: 142 69% 39%;
-    --brand-dim: 142 69% 39%;
+    --brand: 152 64% 36%;
+    --brand-glow: 152 64% 36%;
+    --brand-dim: 152 50% 60%;
 
     /* Sidebar */
-    --sidebar-background: 0 0% 100%; /* #FFFFFF - White sidebar */
-    --sidebar-foreground: 220 13% 9%; /* #111827 - Dark text */
-    --sidebar-primary: 142 69% 39%;   /* #16A34A - Green */
-    --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF - White text */
-    --sidebar-accent: 220 13% 91%;   /* #E5E7EB - Light hover state */
-    --sidebar-accent-foreground: 220 13% 9%; /* #111827 - Dark on hover */
-    --sidebar-border: 220 13% 91%;   /* #E5E7EB - Light borders */
-    --sidebar-ring: 142 69% 39%;     /* #16A34A - Green focus */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 32% 14%;
+    --sidebar-primary: 152 64% 36%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 90% 96%;
+    --sidebar-accent-foreground: 222 32% 14%;
+    --sidebar-border: 214 24% 90%;
+    --sidebar-ring: 152 64% 36%;
   }
 }
 
