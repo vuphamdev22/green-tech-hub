@@ -297,3 +297,103 @@ html:not(.dark) a {
   @apply text-carbon-800 hover:text-brand;
   @apply transition-colors duration-200;
 }
+
+/* ========================================================================
+   Screenshot Mode — brightest light theme, no animations, tidy spacing.
+   Activated via .screenshot-mode on <html>. Toggled by ScreenshotModeToggle.
+   ======================================================================== */
+html.screenshot-mode {
+  /* Force the brightest light palette (overrides .dark if ever applied) */
+  --background: 0 0% 100%;
+  --foreground: 222 32% 12%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 32% 12%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 32% 12%;
+
+  --primary: 152 64% 36%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 210 40% 97%;
+  --secondary-foreground: 222 22% 22%;
+
+  --muted: 210 40% 97%;
+  --muted-foreground: 215 16% 42%;
+
+  --accent: 210 90% 97%;
+  --accent-foreground: 222 47% 20%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 214 24% 92%;
+  --input: 214 24% 92%;
+  --ring: 152 64% 36%;
+
+  --carbon-900: 222 32% 12%;
+  --carbon-800: 222 22% 24%;
+  --carbon-700: 215 16% 42%;
+  --carbon-600: 214 24% 88%;
+
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 222 32% 12%;
+  --sidebar-accent: 210 90% 97%;
+  --sidebar-accent-foreground: 222 32% 12%;
+  --sidebar-border: 214 24% 92%;
+
+  /* Crisp, neutral background — no patterns */
+  background: hsl(var(--background)) !important;
+  scroll-behavior: auto !important;
+}
+
+/* Disable ALL animations & transitions for stable captures */
+html.screenshot-mode *,
+html.screenshot-mode *::before,
+html.screenshot-mode *::after {
+  animation: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition: none !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Consistent spacing & polish for report screenshots */
+html.screenshot-mode body {
+  background: hsl(var(--background)) !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+html.screenshot-mode .container,
+html.screenshot-mode main {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+}
+
+/* Replace decorative gradients/patterns with clean surfaces */
+html.screenshot-mode .grid-pattern,
+html.screenshot-mode .scanline::after {
+  background: none !important;
+}
+
+/* Soften brand glow effects that look noisy in captures */
+html.screenshot-mode .glow-brand,
+html.screenshot-mode [class*="shadow-glow"] {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Cards: uniform soft shadow + border for crisp screenshots */
+html.screenshot-mode [class*="rounded-"][class*="border"],
+html.screenshot-mode .card {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Hide the floating chatbot during screenshots to keep captures clean */
+html.screenshot-mode .chatbot-widget,
+html.screenshot-mode [data-chatbot-widget] {
+  display: none !important;
+}
