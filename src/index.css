@@ -403,3 +403,103 @@ html.screenshot-mode .chatbot-widget,
 html.screenshot-mode [data-chatbot-widget] {
   display: none !important;
 }
+
+/* ========================================================================
+   Light Theme — Global Consistency Layer
+   Normalizes shadows, radii, hover states, and surface colors so every
+   region (cards, sidebar, modals, dropdowns, tables) feels unified.
+   Scoped to html:not(.dark) only; dark mode untouched.
+   ======================================================================== */
+
+/* Unified card shadow (replaces a mix of shadow-sm/md/lg/xl) */
+html:not(.dark) .shadow-sm,
+html:not(.dark) .shadow,
+html:not(.dark) .shadow-md {
+  box-shadow:
+    0 1px 2px hsl(220 25% 14% / 0.04),
+    0 1px 3px hsl(220 25% 14% / 0.06) !important;
+}
+html:not(.dark) .shadow-lg,
+html:not(.dark) .shadow-xl,
+html:not(.dark) .shadow-2xl {
+  box-shadow:
+    0 4px 12px hsl(220 25% 14% / 0.06),
+    0 2px 4px hsl(220 25% 14% / 0.04) !important;
+}
+
+/* Soft, consistent hover surface — uses --accent token */
+html:not(.dark) .hover\:bg-gray-50:hover,
+html:not(.dark) .hover\:bg-gray-100:hover,
+html:not(.dark) .hover\:bg-slate-50:hover,
+html:not(.dark) .hover\:bg-slate-100:hover,
+html:not(.dark) .hover\:bg-zinc-50:hover,
+html:not(.dark) .hover\:bg-neutral-50:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Normalize stray gray text classes to the muted-foreground token */
+html:not(.dark) .text-gray-400,
+html:not(.dark) .text-gray-500,
+html:not(.dark) .text-slate-400,
+html:not(.dark) .text-slate-500,
+html:not(.dark) .text-zinc-400,
+html:not(.dark) .text-zinc-500,
+html:not(.dark) .text-neutral-500 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+html:not(.dark) .text-gray-600,
+html:not(.dark) .text-gray-700,
+html:not(.dark) .text-slate-600,
+html:not(.dark) .text-slate-700 {
+  color: hsl(var(--carbon-800)) !important;
+}
+html:not(.dark) .text-gray-800,
+html:not(.dark) .text-gray-900,
+html:not(.dark) .text-slate-800,
+html:not(.dark) .text-slate-900,
+html:not(.dark) .text-black {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Normalize stray gray surfaces to design-system tokens */
+html:not(.dark) .bg-gray-50,
+html:not(.dark) .bg-slate-50,
+html:not(.dark) .bg-zinc-50,
+html:not(.dark) .bg-neutral-50 {
+  background-color: hsl(var(--surface, var(--muted))) !important;
+}
+html:not(.dark) .bg-gray-100,
+html:not(.dark) .bg-slate-100,
+html:not(.dark) .bg-zinc-100,
+html:not(.dark) .bg-neutral-100 {
+  background-color: hsl(var(--muted)) !important;
+}
+html:not(.dark) .bg-white {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Normalize gray borders */
+html:not(.dark) .border-gray-100,
+html:not(.dark) .border-gray-200,
+html:not(.dark) .border-slate-100,
+html:not(.dark) .border-slate-200,
+html:not(.dark) .border-zinc-200,
+html:not(.dark) .border-neutral-200 {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Headings consistently use the darkest carbon token */
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4 {
+  color: hsl(var(--carbon-900));
+  letter-spacing: -0.02em;
+}
+
+/* Soft, uniform focus ring across the app */
+html:not(.dark) :focus-visible {
+  outline: 2px solid hsl(var(--ring) / 0.5);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
