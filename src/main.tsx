@@ -2,20 +2,17 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Khởi tạo theme trước khi render
+// Initialize theme — default to LIGHT for a brighter, screenshot-friendly UI.
+// Users can still toggle to dark mode; their choice persists in localStorage.
 (() => {
   const stored = localStorage.getItem("theme");
-  const prefersDark =
-    stored === "dark" ||
-    (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
-
+  const useDark = stored === "dark"; // only honor explicit dark choice
   const html = document.documentElement;
-  if (prefersDark) {
+  if (useDark) {
     html.classList.add("dark");
-    localStorage.setItem("theme", "dark");
   } else {
     html.classList.remove("dark");
-    localStorage.setItem("theme", "light");
+    if (stored !== "light") localStorage.setItem("theme", "light");
   }
 })();
 
