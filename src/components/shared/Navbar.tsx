@@ -9,10 +9,13 @@ import {
   Zap,
   ChevronDown,
   User,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { categories } from "@/data/mockData";
 import tokenService from "@/services/tokenService";
+import { useTheme } from "@/hooks/useTheme";
 
 const navLinks = [
   { label: "Laptops", href: "/products?category=laptops" },
@@ -30,6 +33,7 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryDropdown, setCategoryDropdown] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(tokenService.isAuthenticated());
+  const { theme, toggleTheme } = useTheme();
   const count = useCartStore((s) => s.count());
   const setCartOpen = useCartStore((s) => s.setOpen);
   const navigate = useNavigate();
@@ -56,7 +60,7 @@ export default function Navbar() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? "bg-carbon-800/95 backdrop-blur-md border-b border-white/5 shadow-lg"
+            ? "bg-white/95 dark:bg-carbon-800/95 backdrop-blur-md border-b border-gray-200 dark:border-white/5 shadow-md dark:shadow-lg"
             : "bg-transparent"
         }`}
       >
@@ -65,7 +69,7 @@ export default function Navbar() {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
               <div className="w-8 h-8 bg-brand rounded-sm flex items-center justify-center">
-                <Zap className="w-5 h-5 text-carbon-900" fill="currentColor" />
+                <Zap className="w-5 h-5 text-carbon-900 dark:text-carbon-900" fill="currentColor" />
               </div>
               <span className="font-black text-xl tracking-tighter text-foreground">
                 VOLT<span className="text-brand">GEAR</span>
@@ -89,13 +93,13 @@ export default function Navbar() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 8 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-1 w-56 bg-carbon-700 border border-white/10 rounded-md shadow-2xl overflow-hidden"
+                      className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-carbon-700 border border-gray-200 dark:border-white/10 rounded-md shadow-lg dark:shadow-2xl overflow-hidden"
                     >
                       {categories.map((cat) => (
                         <Link
                           key={cat.id}
                           to={`/products?category=${cat.id}`}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                         >
                           <span className="text-base">{cat.icon}</span>
                           <span>{cat.name}</span>
@@ -130,6 +134,43 @@ export default function Navbar() {
               >
                 <Search className="w-5 h-5" />
               </button>
+
+              {/* Dark Mode Toggle */}
+              <motion.button
+                onClick={toggleTheme}
+                className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-sm group"
+                title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <AnimatePresence mode="wait">
+                  {theme === "dark" ? (
+                    <motion.div
+                      key="moon"
+                      initial={{ y: -20, opacity: 0, rotate: -90 }}
+                      animate={{ y: 0, opacity: 1, rotate: 0 }}
+                      exit={{ y: 20, opacity: 0, rotate: 90 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Moon className="w-5 h-5" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="sun"
+                      initial={{ y: -20, opacity: 0, rotate: -90 }}
+                      animate={{ y: 0, opacity: 1, rotate: 0 }}
+                      exit={{ y: 20, opacity: 0, rotate: 90 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Sun className="w-5 h-5" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                {/* Tooltip */}
+                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-carbon-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none dark:bg-white dark:text-carbon-900">
+                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                </div>
+              </motion.button>
 
               {/* Cart */}
               <button
@@ -184,7 +225,7 @@ export default function Navbar() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="lg:hidden bg-carbon-800 border-t border-white/5 overflow-hidden"
+              className="lg:hidden bg-gray-50 dark:bg-carbon-800 border-t border-gray-200 dark:border-white/5 overflow-hidden"
             >
               <div className="px-4 py-4 space-y-1">
                 {navLinks.map((link) => (
@@ -192,17 +233,17 @@ export default function Navbar() {
                     key={link.href}
                     to={link.href}
                     onClick={() => setMobileOpen(false)}
-                    className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-sm transition-colors"
+                    className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5 rounded-sm transition-colors"
                   >
                     {link.label}
                   </Link>
                 ))}
-                <div className="border-t border-white/5 pt-2 mt-2">
+                <div className="border-t border-gray-200 dark:border-white/5 pt-2 mt-2">
                 {isAuthenticated ? (
                   <Link
                     to="/profile"
                     onClick={() => setMobileOpen(false)}
-                    className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-sm transition-colors"
+                    className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5 rounded-sm transition-colors"
                   >
                     Profile
                   </Link>
@@ -210,7 +251,7 @@ export default function Navbar() {
                   <Link
                     to="/login"
                     onClick={() => setMobileOpen(false)}
-                    className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-sm transition-colors"
+                    className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5 rounded-sm transition-colors"
                   >
                     Sign In
                   </Link>
@@ -229,7 +270,7 @@ export default function Navbar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-start justify-center pt-24 px-4"
+            className="fixed inset-0 z-[60] bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-start justify-center pt-24 px-4"
             onClick={() => setSearchOpen(false)}
           >
             <motion.div
@@ -237,7 +278,7 @@ export default function Navbar() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -20, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-xl bg-carbon-700 border border-white/10 rounded-md shadow-2xl overflow-hidden"
+              className="w-full max-w-xl bg-white dark:bg-carbon-700 border border-gray-200 dark:border-white/10 rounded-md shadow-lg dark:shadow-2xl overflow-hidden"
             >
               <form onSubmit={handleSearch} className="flex items-center gap-3 px-4 py-4">
                 <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
@@ -248,11 +289,11 @@ export default function Navbar() {
                   placeholder="Search laptops, GPUs, peripherals..."
                   className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm"
                 />
-                <kbd className="text-xs text-muted-foreground bg-white/5 px-2 py-1 rounded border border-white/10 font-mono-spec">
+                <kbd className="text-xs text-muted-foreground bg-gray-100 dark:bg-white/5 px-2 py-1 rounded border border-gray-300 dark:border-white/10 font-mono-spec">
                   ESC
                 </kbd>
               </form>
-              <div className="border-t border-white/5 px-4 py-2">
+              <div className="border-t border-gray-200 dark:border-white/5 px-4 py-2">
                 <p className="text-xs text-muted-foreground">
                   Popular: RTX 5090, Gaming Laptop, Mechanical Keyboard
                 </p>

@@ -9,7 +9,7 @@
 
 @layer base {
   :root {
-    /* Surfaces */
+    /* Surfaces - Dark Mode (Default) */
     --background: 220 14% 10%;
     --foreground: 0 0% 95%;
 
@@ -59,6 +59,64 @@
     --sidebar-border: 220 10% 15%;
     --sidebar-ring: 142 71% 45%;
   }
+
+  /* Light Mode - when .dark class is NOT present */
+  html:not(.dark) {
+    /* Clean Modern SaaS Light Theme */
+    --background: 220 14% 97%;      /* #F8FAFC - Very light neutral */
+    --foreground: 220 13% 9%;       /* #111827 - High contrast dark text */
+
+    --card: 0 0% 100%;              /* #FFFFFF - Pure white cards */
+    --card-foreground: 220 13% 9%;  /* #111827 - Dark text on white */
+
+    --popover: 0 0% 100%;           /* #FFFFFF - White popover */
+    --popover-foreground: 220 13% 9%; /* #111827 - Dark text */
+
+    /* Primary green - for CTA buttons and highlights ONLY */
+    --primary: 142 69% 39%;         /* #16A34A - Professional green */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF - White text on green */
+
+    /* Secondary - light gray background */
+    --secondary: 220 13% 91%;       /* #E5E7EB - Light gray */
+    --secondary-foreground: 220 9% 46%; /* #6B7280 - Medium gray text */
+
+    /* Muted - secondary/disabled text */
+    --muted: 220 13% 91%;           /* #E5E7EB - Light gray background */
+    --muted-foreground: 220 9% 46%; /* #6B7280 - Medium gray text */
+
+    --accent: 142 69% 39%;          /* #16A34A - Green accent */
+    --accent-foreground: 0 0% 100%; /* #FFFFFF - White text on accent */
+
+    --destructive: 220 90% 56%;     /* #EF4444 - Clean red */
+    --destructive-foreground: 0 0% 100%; /* #FFFFFF - White on red */
+
+    /* Borders and inputs */
+    --border: 220 13% 91%;          /* #E5E7EB - Light gray borders */
+    --input: 0 0% 100%;             /* #FFFFFF - White input backgrounds */
+    --ring: 142 69% 39%;            /* #16A34A - Green focus ring */
+
+    --radius: 0.5rem;               /* 8px - Modern spacing */
+
+    /* Carbon palette - light mode versions (grays for hierarchy) */
+    --carbon-900: 220 13% 9%;       /* #111827 - Darkest (headings) */
+    --carbon-800: 220 13% 20%;      /* #1F2937 - Dark (subheadings) */
+    --carbon-700: 220 9% 46%;       /* #6B7280 - Medium (body text) */
+    --carbon-600: 220 13% 80%;      /* #D1D5DB - Light (dividers) */
+
+    --brand: 142 69% 39%;           /* #16A34A - Green */
+    --brand-glow: 142 69% 39%;
+    --brand-dim: 142 69% 39%;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%; /* #FFFFFF - White sidebar */
+    --sidebar-foreground: 220 13% 9%; /* #111827 - Dark text */
+    --sidebar-primary: 142 69% 39%;   /* #16A34A - Green */
+    --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF - White text */
+    --sidebar-accent: 220 13% 91%;   /* #E5E7EB - Light hover state */
+    --sidebar-accent-foreground: 220 13% 9%; /* #111827 - Dark on hover */
+    --sidebar-border: 220 13% 91%;   /* #E5E7EB - Light borders */
+    --sidebar-ring: 142 69% 39%;     /* #16A34A - Green focus */
+  }
 }
 
 @layer base {
@@ -72,6 +130,26 @@
   }
   h1, h2, h3, h4, h5, h6 {
     letter-spacing: -0.03em;
+    @apply text-carbon-900;
+  }
+
+  /* Light mode specific enhancements */
+  html:not(.dark) {
+    /* Soft shadows for cards in light mode */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+
+  html:not(.dark) button,
+  html:not(.dark) input,
+  html:not(.dark) textarea,
+  html:not(.dark) select {
+    @apply transition-all duration-200;
+  }
+
+  html:not(.dark) button:hover:not(:disabled) {
+    @apply shadow-sm;
   }
 }
 
@@ -95,6 +173,29 @@
   .border-brand {
     border-color: hsl(var(--brand));
   }
+
+  /* Light mode card shadows - soft and subtle */
+  html:not(.dark) .shadow-sm {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  html:not(.dark) .shadow {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  html:not(.dark) .shadow-md {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  html:not(.dark) .shadow-lg {
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Light mode hover effects */
+  html:not(.dark) .hover\:shadow-md:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
   .glow-brand {
     box-shadow: 0 0 30px hsl(var(--brand-glow) / 0.2);
   }
@@ -120,13 +221,81 @@
     background-size: 100% 4px;
     pointer-events: none;
   }
+
+  /* Light mode specific utilities */
+  html:not(.dark) {
+    --tw-shadow-color: rgba(0, 0, 0, 0.08);
+  }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: hsl(var(--carbon-800)); }
-::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--brand) / 0.5); }
+/* Scrollbar - light mode specific */
+html:not(.dark) ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 
-/* Selection */
-::selection { background: hsl(var(--brand) / 0.3); color: #fff; }
+html:not(.dark) ::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: hsl(220 8% 56% / 0.6);
+  border-radius: 4px;
+  border: 2px solid hsl(var(--background));
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--brand) / 0.7);
+}
+
+/* Dark mode scrollbar */
+html.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: hsl(var(--carbon-800));
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--brand) / 0.5);
+}
+
+/* Selection - light mode */
+html:not(.dark) ::selection {
+  background: hsl(var(--brand) / 0.15);
+  color: hsl(var(--brand));
+}
+
+/* Selection - dark mode */
+html.dark ::selection {
+  background: hsl(var(--brand) / 0.3);
+  color: #fff;
+}
+
+/* Light mode input focus styling */
+html:not(.dark) input:focus,
+html:not(.dark) textarea:focus,
+html:not(.dark) select:focus {
+  outline: none;
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.1);
+}
+
+/* Light mode button styling improvements */
+html:not(.dark) button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Light mode link styling */
+html:not(.dark) a {
+  @apply text-carbon-800 hover:text-brand;
+  @apply transition-colors duration-200;
+}

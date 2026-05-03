@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cartStore";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import orderService from "@/services/orderService";
+import { VietQRPayment } from "@/components/VietQRPayment";
 import type { CheckoutPayload, PaymentMethod, ShippingAddress } from "@/types/order";
 
 const STEPS = ["Shipping", "Payment", "Review"];
@@ -258,6 +259,7 @@ export default function Checkout() {
     try {
       const paymentMethodAPI =
         payMethod === "vnpay" ? "VNPAY" :
+        payMethod === "qr_code" ? "VIETQR" :
         payMethod === "e_wallet" ? "MOMO" :
         payMethod === "cod" ? "COD" :
         payMethod === "bank_transfer" ? "BANK_TRANSFER" :
@@ -466,16 +468,17 @@ export default function Checkout() {
                         exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }}
                         className="overflow-hidden"
                       >
-                        <div className="mt-4 flex flex-col items-center gap-4">
-                          <p className="text-xs text-muted-foreground text-center">
-                            Scan with your banking or wallet app
-                          </p>
-                          <QRCodeDisplay amount={taxedTotal} />
-                          <div className="flex gap-2 text-xs text-muted-foreground">
-                            <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse mt-1 flex-shrink-0" />
-                            Waiting for payment confirmation…
-                          </div>
-                          <PaymentSimulator onResult={handlePaymentResult} />
+                        <div className="mt-4">
+                          <VietQRPayment
+                            amount={taxedTotal}
+                            description="Thanh toán đơn hàng qua VietQR"
+                            onPaymentSuccess={() => {
+                              toast.success("Thanh toán thành công! Đơn hàng sẽ được xử lý.");
+                            }}
+                            onPaymentFailed={() => {
+                              toast.error("Thanh toán thất bại. Vui lòng thử lại.");
+                            }}
+                          />
                         </div>
                       </motion.div>
                     )}

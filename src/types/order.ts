@@ -1,4 +1,4 @@
-export type PaymentMethod = "cod" | "bank_transfer" | "qr_code" | "e_wallet";
+export type PaymentMethod = "cod" | "bank_transfer" | "qr_code" | "e_wallet" | "vnpay";
 
 export interface ShippingAddress {
   firstName: string;
@@ -12,7 +12,9 @@ export interface ShippingAddress {
   country?: string;
 }
 
-export type CheckoutPayload = ShippingAddress;
+export interface CheckoutPayload extends ShippingAddress {
+  paymentMethod: string;
+}
 
 export interface OrderItem {
   productId: number;
